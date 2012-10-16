@@ -6,10 +6,9 @@ Node-persist doesn't use a database. Instead, JSON documents are stored in the f
 This is still a work in progress. Send pull requests please.
 
 ##Install
-1. Put 'persist.js' in your directory
+First, put 'persist.js' in your directory. Then,
 
-
-2. 		var db = require('./persist');
+	var db = require('./persist');
 
 ##Basic
 	//you must first call db.init or db.initSync
