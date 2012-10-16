@@ -1,5 +1,8 @@
 #node-persist
-###Super-easy persistent data structures in Node.js
+
+###Super-easy (and fast) persistent data structures in Node.js
+Node-persist doesn't use a database. Instead, JSON documents are stored in the file system periodically for persistence. Because there is no network overhead and your data is just in-memory, node-persist is just about as fast as a database can get.
+
 This is still a work in progress. Send pull requests please.
 
 ##Install
