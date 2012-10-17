@@ -50,10 +50,14 @@ This function will get a key from your database, and return its value, or undefi
 
 
 ###set(key, value)
-This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep.
+This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
 
 	db.set('fibonacci',[0,1,1,2,3,5,8]);
 	db.set(42,'the answer to life, the universe, and everything.')
+	
+	var batman = db.get('batman');
+	batman.sidekick = 'Robin';
+	db.set('batman',batman); //this ensures the object is persisted
 	
 	
 ##Fine-grained control
