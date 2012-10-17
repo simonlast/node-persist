@@ -57,6 +57,7 @@ This function sets 'key' in your database to 'value'. It also sets a flag, notif
 	
 	
 ##Fine-grained control
+Make sure you set isInterval: false in the options hash.
 ###persist(), persistSync()
 These functions can be used to manually persist the database
 
