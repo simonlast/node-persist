@@ -1,4 +1,5 @@
 #node-persist
+##(localStorage on the server)
 
 ###Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage
 Node-persist doesn't use a database. Instead, JSON documents are stored in the file system periodically for persistence. Because there is no network overhead and your data is just in-memory, node-persist is just about as fast as a database can get. Node-persist uses the HTML5 localStorage API, so it's easy to learn.
