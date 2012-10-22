@@ -11,7 +11,7 @@ First, put 'persist.js' in your directory. Then,
 
 	var storage = require('./persist');
 
-##Basic
+##Basic Example
 	//you must first call storage.init or storage.initSync
 	storage.init();
 	
