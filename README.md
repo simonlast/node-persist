@@ -89,3 +89,6 @@ These functions manually persist 'key' within the database
 
 		storage.setItem('name','myname');
 		storage.persistKey('name'); 
+		
+
+###[Simon Last](http://simonlast.org)		
