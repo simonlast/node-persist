@@ -1,3 +1,7 @@
+/*
+ * Simon Last, October 2012
+ * http://simonlast.org
+ */
 
 var fs = require('fs');
 
@@ -15,8 +19,18 @@ var defaults = {
 var data = {};
 var changes = {};
 
+/*
+ * This function, (or initSync) must be called before the library can be used.
+ * 	An options hash can be optionally passed.
+ */
 exports.init = function(userOptions){
-	
+
+	//remove a trailing slash
+	if(userOptions && userOptions.dir && 
+		userOptions.dir.charAt(userOptions.dir.length-1) === '/'){
+		userOptions.dir = userOptions.dir.slice(0,userOptions.dir.length-1);
+	}
+
 	setOptions(userOptions);
 
 	if(options.logging){
@@ -26,7 +40,8 @@ exports.init = function(userOptions){
 
 	//check to see if dir is present
 	fs.exists(options.dir,function(exists){
-			if(exists){ //load data
+			if(exists){ 
+				//load data
 				fs.readdir(options.dir, function(err,arr){
 						for(var i in arr){
 							var curr = arr[i];
@@ -35,7 +50,8 @@ exports.init = function(userOptions){
 							}
 						}
 				});
-			}else{ //create the directory
+			}else{ 
+				//create the directory
 				fs.mkdir(options.dir);
 			}
 	});
@@ -45,6 +61,10 @@ exports.init = function(userOptions){
 		setInterval(exports.persist,options.interval);
 }
 
+/*
+ * This function, (or init) must be called before the library can be used.
+ * 	An options hash can be optionally passed.
+ */
 exports.initSync = function(userOptions){
 	
 	setOptions(userOptions);
@@ -76,6 +96,69 @@ exports.initSync = function(userOptions){
 		setInterval(exports.persistSync,options.interval);
 }
 
+/*
+ * This function returns a key with index n in the database, or null if
+ * 	it is not present.
+ */
+exports.key = function(n){
+	var keys = Object.keys(data);
+	if(keys.length <= n){
+		return null;
+	}
+	return keys[n];
+}
+
+/*
+ * This function returns the value associated with a key in the database,
+ * 	or undefined if it is not present.
+ */
+exports.getItem = function(key){
+	return data[key];
+}
+
+/*
+ * This function sets a key to a given value in the database.
+ */
+exports.setItem = function(key,value){
+	data[key] = value;
+	changes[key] = true;
+	if(options.logging)
+		console.log("set (" + key +":" + value + ")");
+}
+
+/*
+ * This function removes key in the database if it is present, and
+ * 	immediately deletes it from the file system asynchronously.
+ */
+exports.removeItem = function(key){
+	delete data[key];
+	removePersistedKey(key);
+	if(options.logging)
+		console.log("removed" + key);
+}
+
+/*
+ * This function removes all keys in the database, and immediately
+ * 	deletes all keys from the file system asynchronously.
+ */
+exports.clear = function(){
+	var keys = Object.keys(data);
+	for(var i=0; i<keys.length; i++){
+		removePersistedKey(keys[i]);
+	}
+	data = {};
+}
+
+/*
+ * This function returns the number of keys stored in the database.
+ */
+exports.length = function(){
+	return Object.keys(data).length;
+}
+
+/*
+ * This function triggers the database to persist asynchronously.
+ */
 exports.persist = function(){
 	for(var key in data){
 		if(changes[key]){
@@ -84,6 +167,9 @@ exports.persist = function(){
 	}
 }
 
+/*
+ * This function triggers the database to persist synchronously.
+ */
 exports.persistSync = function(){
 	for(var key in data){
 		if(changes[key]){
@@ -92,6 +178,9 @@ exports.persistSync = function(){
 	}
 }
 
+/*
+ * This function triggers a key within the database to persist asynchronously.
+ */
 exports.persistKey = function(key){
 	var json = options.stringify(data[key]);
 	fs.writeFile(options.dir + "/" + key, json, options.encoding);
@@ -100,6 +189,9 @@ exports.persistKey = function(key){
 		console.log("wrote: " + key)
 }
 
+/*
+ * This function triggers a key within the database to persist synchronously.
+ */
 exports.persistKeySync = function(key){
 	var json = options.stringify(data[key]);
 	fs.writeFile(options.dir + "/" + key, json,
@@ -110,15 +202,19 @@ exports.persistKeySync = function(key){
 	changes[key] = false;
 }
 
-exports.get = function(key){
-	return data[key];
-}
+//helper functions
 
-exports.set = function(key,value){
-	data[key] = value;
-	changes[key] = true;
-	if(options.logging)
-		console.log("set (" + key +":" + value + ")");
+
+var removePersistedKey = function(key){
+	//check to see if key has been persisted
+	var file = options.dir + '/' + key;
+	fs.exists(file, function(exists){
+		if(exists){
+			fs.unlink(file, function (err) {
+  				if (err) throw err;
+  			});
+		}
+	});
 }
 
 var setOptions = function(userOptions){
