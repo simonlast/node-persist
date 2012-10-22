@@ -93,7 +93,7 @@ exports.initSync = function(userOptions){
 
 	//start persisting
 	if(options.isInterval)
-		setInterval(exports.persistSync,options.interval);
+		setInterval(exports.persist,options.interval);
 }
 
 /*
