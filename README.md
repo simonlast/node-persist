@@ -28,6 +28,11 @@ First, put 'persist.js' in your directory. Then,
 	storage.setItem('batman',batman);
 	console.log(storage.getItem('batman').alias);
 	
+##Run the examples:
+	cd examples/examplename
+	node examplename.js
+	open up localhost:8080
+	
 ##Options
 You can pass init or initSync a hash options to customize the behavior of node-persist
 	
