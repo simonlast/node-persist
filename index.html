@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Node-persist by simonlast</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Node-persist</h1>
+        <p>Super-easy persistent data structures in Node.js</p>
+
+        <p class="view"><a href="https://github.com/simonlast/node-persist">View the Project on GitHub <small>simonlast/node-persist</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/simonlast/node-persist/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/simonlast/node-persist/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/simonlast/node-persist">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>node-persist</h1>
+
+<h2>(localStorage on the server)</h2>
+
+<h3>Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage</h3>
+
+<p>Node-persist doesn't use a database. Instead, JSON documents are stored in the file system periodically for persistence. Because there is no network overhead and your data is just in-memory, node-persist is just about as fast as a database can get. Node-persist uses the HTML5 localStorage API, so it's easy to learn.</p>
+
+<p>This is still a work in progress. Send pull requests please.</p>
+
+<h2>Install</h2>
+
+<p>First, put 'persist.js' in your directory. Then,</p>
+
+<pre><code>var storage = require('./persist');
+</code></pre>
+
+<h2>Basic Example</h2>
+
+<pre><code>//you must first call storage.init or storage.initSync
+storage.init();
+
+//then start using it
+storage.setItem('name','yourname');
+console.log(storage.getItem('name'));
+
+var batman = {
+    first: 'Bruce',
+    last: 'Wayne',
+    alias: 'Batman'
+};
+
+storage.setItem('batman',batman);
+console.log(storage.getItem('batman').alias);
+</code></pre>
+
+<h2>Run the examples:</h2>
+
+<pre><code>cd examples/examplename
+node examplename.js
+open up localhost:8080
+</code></pre>
+
+<h2>Options</h2>
+
+<p>You can pass init or initSync a hash options to customize the behavior of node-persist</p>
+
+<pre><code>storage.init({
+        dir:'myDir', // The Directory to save documents
+        interval:6000, // Saving interval, in milliseconds
+        stringify: myStringifyFunction,
+        parse: myParsingFunction,
+        encoding: 'utf8',
+        logging: false, //print storage logs,
+        isInterval: true // turn off for fine-grained control
+});
+</code></pre>
+
+<h2>Documentation</h2>
+
+<h3>getItem(key)</h3>
+
+<p>This function will get a key from your database, and return its value, or undefined if it is not present.</p>
+
+<pre><code>storage.getItem('name');
+storage.getItem('obj').key1;
+storage.getItem('arr')[42];
+</code></pre>
+
+<h3>setItem(key, value)</h3>
+
+<p>This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.</p>
+
+<pre><code>storage.setItem('fibonacci',[0,1,1,2,3,5,8]);
+storage.setItem(42,'the answer to life, the universe, and everything.')
+
+var batman = storage.getItem('batman');
+batman.sidekick = 'Robin';
+storage.setItem('batman',batman); //this ensures the object is persisted
+</code></pre>
+
+<h3>removeItem(key)</h3>
+
+<p>This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously.</p>
+
+<pre><code>storage.removeItem('me');
+storage.removeItem(42);
+</code></pre>
+
+<h3>clear()</h3>
+
+<p>This function removes all keys in the database, and immediately deletes all keys from the file system asynchronously.</p>
+
+<h3>key(n)</h3>
+
+<p>This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.</p>
+
+<h3>length()</h3>
+
+<p>This function returns the number of keys stored in the database.    </p>
+
+<h2>Fine-grained control</h2>
+
+<p>Make sure you set isInterval: false in the options hash.</p>
+
+<h3>persist(), persistSync()</h3>
+
+<p>These functions can be used to manually persist the database</p>
+
+<pre><code>    storage.persist();
+    storage.persistSync();
+</code></pre>
+
+<h3>persistKey(key), persistKeySync(key)</h3>
+
+<p>These functions manually persist 'key' within the database</p>
+
+<pre><code>    storage.setItem('name','myname');
+    storage.persistKey('name'); 
+</code></pre>
+
+<h3><a href="http://simonlast.org">Simon Last</a></h3>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/simonlast">simonlast</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
