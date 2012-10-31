@@ -2,7 +2,7 @@
 ##(localStorage on the server)
 
 ###Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage
-Node-persist doesn't use a database. Instead, JSON documents are stored in the file system periodically for persistence. Because there is no network overhead and your data is just in-memory, node-persist is just about as fast as a database can get. Node-persist uses the HTML5 localStorage API, so it's easy to learn.
+Node-persist doesn't use a database. Instead, JSON documents are stored in the file system for persistence. Because there is no network overhead and your data is just in-memory, node-persist is just about as fast as a database can get. Node-persist uses the HTML5 localStorage API, so it's easy to learn.
 
 This is still a work in progress. Send pull requests please.
 
@@ -13,7 +13,7 @@ First, put 'persist.js' in your directory. Then,
 
 ##Basic Example
 	//you must first call storage.init or storage.initSync
-	storage.init();
+	storage.initSync();
 	
 	//then start using it
 	storage.setItem('name','yourname');
@@ -37,16 +37,24 @@ First, put 'persist.js' in your directory. Then,
 You can pass init or initSync a hash options to customize the behavior of node-persist
 	
 	storage.init({
-			dir:'myDir', // The Directory to save documents
-			interval:6000, // Saving interval, in milliseconds
-			stringify: myStringifyFunction,
-			parse: myParsingFunction,
-			encoding: 'utf8',
-			logging: false, //print storage logs,
-			isInterval: true // turn off for fine-grained control
+		dir:'persist',
+		stringify: JSON.stringify,
+		parse: JSON.parse,
+		encoding: 'utf8',
+		logging: false,
+		continuous: true,
+		interval: false
 	});
 	
 ##Documentation
+By default, node-persist persists a key directly after persistSync is called on it.
+
+###Node-persist has 3 ways of running:
+
+1. By default, keys will be persisted after every call of setItem
+2. If you set an interval, node-persist will persist changed keys at that interval instead of after every call of setItem.
+3. If you set continuous to false and don't specify an interval, keys aren't persisted automatically, giving you complete control over when to persist them.
+
 ###getItem(key)
 This function will get a key from your database, and return its value, or undefined if it is not present.
 	
@@ -81,7 +89,7 @@ This function returns a key with index n in the database, or null if it is not p
 This function returns the number of keys stored in the database.	
 	
 ##Fine-grained control
-Make sure you set isInterval: false in the options hash.
+Make sure you set continuous: false in the options hash, and you don't set an interval
 ###persist(), persistSync()
 These functions can be used to manually persist the database
 
@@ -95,5 +103,14 @@ These functions manually persist 'key' within the database
 		storage.setItem('name','myname');
 		storage.persistKey('name'); 
 		
+
+###Changelog
+10/31/12: Made keys persist immediately after setItem is called. This eliminates the risk of losing keys if your process crashes.
+
+10/31/12: Made examples prettier	
+
+###TODO
+1. Make some tests
+2. Make more examples	
 
 ###[Simon Last](http://simonlast.org)		

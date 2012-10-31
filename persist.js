@@ -4,32 +4,29 @@
  */
 
 var fs = require('fs');
+var path = require('path');
 
 var options = {};
 var defaults = {
 	dir:'persist',
-	interval:300000,
 	stringify: JSON.stringify,
 	parse: JSON.parse,
 	encoding: 'utf8',
 	logging: false,
-	isInterval: true
+	continuous: true,
+	interval: false
 };
 
 var data = {};
 var changes = {};
+
+var dir = __dirname;
 
 /*
  * This function, (or initSync) must be called before the library can be used.
  * 	An options hash can be optionally passed.
  */
 exports.init = function(userOptions){
-
-	//remove a trailing slash
-	if(userOptions && userOptions.dir && 
-		userOptions.dir.charAt(userOptions.dir.length-1) === '/'){
-		userOptions.dir = userOptions.dir.slice(0,userOptions.dir.length-1);
-	}
 
 	setOptions(userOptions);
 
@@ -57,7 +54,7 @@ exports.init = function(userOptions){
 	});
 
 	//start persisting
-	if(options.isInterval)
+	if(options.interval && options.interval > 0)
 		setInterval(exports.persist,options.interval);
 }
 
@@ -81,7 +78,7 @@ exports.initSync = function(userOptions){
 		for(var i in arr){
 			var curr = arr[i];
 			if(curr[0] !== '.'){
-				var json = fs.readFileSync(options.dir + "/" + curr,
+				var json = fs.readFileSync(path.join(options.dir, curr),
 					options.encoding);
 				var value = options.parse(json);
 				data[curr] = value;
@@ -92,13 +89,15 @@ exports.initSync = function(userOptions){
 	}
 
 	//start persisting
-	if(options.isInterval)
-		setInterval(exports.persist,options.interval);
+	if(options.interval && options.interval > 0)
+		setInterval(exports.persistSync,options.interval);
 }
 
 /*
  * This function returns a key with index n in the database, or null if
  * 	it is not present.
+ * This function runs in 0(k), where k is the number of keys in the
+ * 	database. You probably shouldn't use it.
  */
 exports.key = function(n){
 	var keys = Object.keys(data);
@@ -121,9 +120,13 @@ exports.getItem = function(key){
  */
 exports.setItem = function(key,value){
 	data[key] = value;
-	changes[key] = true;
+	if(options.interval){
+		changes[key] = true;
+	}else if(options.continuous){
+		exports.persistKey(key);
+	}
 	if(options.logging)
-		console.log("set (" + key +":" + value + ")");
+		console.log("set (" + key +": " + value + ")");
 }
 
 /*
@@ -183,7 +186,7 @@ exports.persistSync = function(){
  */
 exports.persistKey = function(key){
 	var json = options.stringify(data[key]);
-	fs.writeFile(options.dir + "/" + key, json, options.encoding);
+	fs.writeFile(path.join(options.dir, key), json, options.encoding);
 	changes[key] = false;
 	if(options.logging)
 		console.log("wrote: " + key)
@@ -194,20 +197,22 @@ exports.persistKey = function(key){
  */
 exports.persistKeySync = function(key){
 	var json = options.stringify(data[key]);
-	fs.writeFile(options.dir + "/" + key, json,
+	fs.writeFile(path.join(options.dir, key), json,
 		options.encoding, function (err) {
   			if (err) throw err;
 		}
 	);
 	changes[key] = false;
+
+	if(options.logging)
+		console.log("wrote: " + key)
 }
 
 //helper functions
 
-
 var removePersistedKey = function(key){
 	//check to see if key has been persisted
-	var file = options.dir + '/' + key;
+	var file = path.join(options.dir, key);
 	fs.exists(file, function(exists){
 		if(exists){
 			fs.unlink(file, function (err) {
@@ -222,17 +227,26 @@ var setOptions = function(userOptions){
 		options = defaults;
 	}else{
 		for(var key in defaults){
-			if(userOptions[key]){
+			if(userOptions[key] != undefined){
 				options[key] = userOptions[key];
 			}else{
 				options[key] = defaults[key];
 			}
 		}
+
+		// dir is not absolute
+		if(options.dir[0] !== '/'){
+			options.dir = path.join(dir, options.dir);
+			if(options.logging){
+				console.log("Made dir absolute: " + options.dir);
+			}
+		}
+
 	}
 }
 
 var parseFile = function(key){
-	fs.readFile(options.dir + "/" + key, options.encoding, function(err,json){
+	fs.readFile(path.join(options.dir, key), options.encoding, function(err,json){
 		if (err) throw err;
 		var value = options.parse(json);
 		data[key] = value;

@@ -10,10 +10,7 @@
 var storage = require('../../persist');
 var http = require('http');
 
-//persist every 4 seconds
-storage.initSync({
-	interval: 4000
-});
+storage.initSync();
 
 if(!storage.getItem('counter')){
 	storage.setItem('counter',0);

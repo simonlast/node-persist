@@ -7,10 +7,7 @@
  var express = require('express');
  var fs = require('fs');
 
-//persist every 4 seconds
-storage.initSync({
-	interval: 4000
-});
+storage.initSync();
 
 if(!storage.getItem('scores')){
 	storage.setItem('scores',[]);
@@ -38,24 +35,16 @@ app.post("/submit" ,function(req,res){
 		});
 		console.log(scores);
 		storage.setItem('scores',scores);
-		res.send("OK");
+		res.json(scores);
 	}else{
 		res.send("BAD");
 	}
-
 });
 
 // show scores
 app.get("/scores" ,function(req,res){
-	var str = "Scores: <br />";
 	var scores = storage.getItem('scores');
-	for(var i=0; i<scores.length; i++){
-		var curr = scores[i];
-		str += curr.user + ": " + curr.score + "<br />";
-	}
-	res.send(str);
-
-
+	res.json(scores);
 });
 
 app.listen(8080);
