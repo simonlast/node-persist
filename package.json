@@ -2,7 +2,7 @@
   "name": "node-persist",
   "version": "0.0.0",
   "description": "Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage",
-  "main": "persist.js",
+  "main": "node-persist.js",
   "directories": {
     "example": "examples"
   },
@@ -20,5 +20,8 @@
   ],
   "author": "Ben Monro",
   "license": "BSD",
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "mkdirp": "~0.3.5"
+  }
 }
