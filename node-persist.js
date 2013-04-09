@@ -7,6 +7,7 @@ var fs = require('fs');
 var path = require('path');
 var mkdirp = require("mkdirp");
 var _ = require("underscore");
+var sugar = require("sugar");
 
 var options = {};
 var defaults = {
@@ -128,6 +129,14 @@ exports.getItem = function (key) {
  */
 exports.values = function(callback) {
         callback(_.values(data));
+}
+
+exports.valuesWithKeyMatch = function(match, callback) {
+    callback(
+        _.filter(data, function(value, key){
+            console.log(key);
+            return key.has(match);
+        }));
 }
 
 /*
