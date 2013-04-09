@@ -37,7 +37,7 @@ This is still a work in progress. Send pull requests please.
 You can pass init or initSync a hash options to customize the behavior of node-persist
 	
 	storage.init({
-		dir:'persist',
+		dir:'relative/path/to/persist',
 		stringify: JSON.stringify,
 		parse: JSON.parse,
 		encoding: 'utf8',
