@@ -79,6 +79,15 @@ This function removes key in the database if it is present, and immediately dele
 	storage.removeItem('me');
 	storage.removeItem(42);
 
+###values(callback)
+This function returns all of the values in the database.
+
+	storage.setItem("batman", {name: "Bruce Wayne"});
+	storage.setItem("superman", {name: "Clark Kent"});
+	storage.values(function(vals){
+	    console.log(vals); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
+	});
+
 ###clear()
 This function removes all keys in the database, and immediately deletes all keys from the file system asynchronously.
 

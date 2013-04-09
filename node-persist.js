@@ -6,6 +6,7 @@
 var fs = require('fs');
 var path = require('path');
 var mkdirp = require("mkdirp");
+var _ = require("underscore");
 
 var options = {};
 var defaults = {
@@ -120,6 +121,13 @@ exports.key = function (n) {
  */
 exports.getItem = function (key) {
     return data[key];
+}
+
+/*
+ * This function returns all the values in the database.
+ */
+exports.values = function(callback) {
+        callback(_.values(data));
 }
 
 /*
