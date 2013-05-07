@@ -7,9 +7,9 @@ Node-persist doesn't use a database. Instead, JSON documents are stored in the f
 This is still a work in progress. Send pull requests please.
 
 ##Install
-First, put 'persist.js' in your directory. Then,
+	npm install node-persist
 
-	var storage = require('./persist');
+	var storage = require('node-persist');
 
 ##Basic Example
 	//you must first call storage.init or storage.initSync
@@ -37,7 +37,7 @@ First, put 'persist.js' in your directory. Then,
 You can pass init or initSync a hash options to customize the behavior of node-persist
 	
 	storage.init({
-		dir:'persist',
+		dir:'relative/path/to/persist',
 		stringify: JSON.stringify,
 		parse: JSON.parse,
 		encoding: 'utf8',
@@ -78,6 +78,15 @@ This function removes key in the database if it is present, and immediately dele
 
 	storage.removeItem('me');
 	storage.removeItem(42);
+
+###values(callback)
+This function returns all of the values in the database.
+
+	storage.setItem("batman", {name: "Bruce Wayne"});
+	storage.setItem("superman", {name: "Clark Kent"});
+	storage.values(function(vals){
+	    console.log(vals); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
+	});
 
 ###clear()
 This function removes all keys in the database, and immediately deletes all keys from the file system asynchronously.

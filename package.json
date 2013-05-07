@@ -1,0 +1,29 @@
+{
+  "name": "node-persist",
+  "version": "0.0.1",
+  "description": "Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage",
+  "main": "node-persist.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:neudesic/node-persist.git"
+  },
+  "keywords": [
+    "node",
+    "persist",
+    "storage"
+  ],
+  "author": "Ben Monro",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "mkdirp": "~0.3.5",
+    "underscore": "~1.4.4",
+    "sugar": "~1.3.8"
+  }
+}
