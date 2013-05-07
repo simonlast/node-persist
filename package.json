@@ -18,7 +18,7 @@
     "persist",
     "storage"
   ],
-  "author": "Ben Monro",
+  "author": "Ben Monro & Simon Last",
   "license": "BSD",
   "readmeFilename": "README.md",
   "dependencies": {
