@@ -1,4 +1,7 @@
 #node-persist
+
+**I don't write tests so my code sucks. -- Simon Last**
+
 ##(localStorage on the server)
 
 ###Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage
