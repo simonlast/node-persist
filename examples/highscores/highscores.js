@@ -3,7 +3,7 @@
  * Open up your browser to 'localhost:8080' to see it in action.
  */
 
- var storage = require('../../persist');
+ var storage = require('../../../node-persist');
  var express = require('express');
  var fs = require('fs');
 
