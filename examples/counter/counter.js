@@ -7,7 +7,7 @@
  * It will probably be incremented several times per page due to
  * multiple requests.
  */
-var storage = require('../../persist');
+var storage = require('../../../node-persist');
 var http = require('http');
 
 storage.initSync();
