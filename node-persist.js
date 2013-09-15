@@ -1,5 +1,5 @@
 /*
- * Simon Last, October 2012
+ * Simon Last, Sept 2013
  * http://simonlast.org
  */
 
@@ -25,9 +25,10 @@ var changes = {};
 
 var dir = __dirname;
 
+
 /*
  * This function, (or initSync) must be called before the library can be used.
- * 	An options hash can be optionally passed.
+ * An options hash can be optionally passed.
  */
 exports.init = function (userOptions) {
 
@@ -54,7 +55,7 @@ exports.init = function (userOptions) {
 
             //create the directory
             mkdirp(options.dir, function (err) {
-                if (err) console.error(err)
+                if (err) console.error(err);
                 else if(options.logging) console.log('created ' + options.dir);
 
             });
@@ -64,11 +65,12 @@ exports.init = function (userOptions) {
     //start persisting
     if (options.interval && options.interval > 0)
         setInterval(exports.persist, options.interval);
-}
+};
+
 
 /*
  * This function, (or init) must be called before the library can be used.
- * 	An options hash can be optionally passed.
+ * An options hash can be optionally passed.
  */
 exports.initSync = function (userOptions) {
 
@@ -88,25 +90,25 @@ exports.initSync = function (userOptions) {
             if (curr[0] !== '.') {
                 var json = fs.readFileSync(path.join(options.dir, curr),
                     options.encoding);
-                var value = options.parse(json);
+                var value = parseString(json);
                 data[curr] = value;
             }
         }
     } else { //create the directory
-//		fs.mkdirSync(options.dir);
         mkdirp.sync(options.dir);
     }
 
     //start persisting
     if (options.interval && options.interval > 0)
         setInterval(exports.persistSync, options.interval);
-}
+};
+
 
 /*
  * This function returns a key with index n in the database, or null if
- * 	it is not present.
+ *  it is not present.
  * This function runs in 0(k), where k is the number of keys in the
- * 	database. You probably shouldn't use it.
+ *  database. You probably shouldn't use it.
  */
 exports.key = function (n) {
     var keys = Object.keys(data);
@@ -114,22 +116,25 @@ exports.key = function (n) {
         return null;
     }
     return keys[n];
-}
+};
+
 
 /*
  * This function returns the value associated with a key in the database,
- * 	or undefined if it is not present.
+ *  or undefined if it is not present.
  */
 exports.getItem = function (key) {
     return data[key];
-}
+};
+
 
 /*
  * This function returns all the values in the database.
  */
 exports.values = function(callback) {
         callback(_.values(data));
-}
+};
+
 
 exports.valuesWithKeyMatch = function(match, callback) {
     callback(
@@ -137,7 +142,8 @@ exports.valuesWithKeyMatch = function(match, callback) {
             console.log(key);
             return key.has(match);
         }));
-}
+};
+
 
 /*
  * This function sets a key to a given value in the database.
@@ -151,22 +157,24 @@ exports.setItem = function (key, value) {
     }
     if (options.logging)
         console.log("set (" + key + ": " + value + ")");
-}
+};
+
 
 /*
  * This function removes key in the database if it is present, and
- * 	immediately deletes it from the file system asynchronously.
+ *  immediately deletes it from the file system asynchronously.
  */
 exports.removeItem = function (key) {
     delete data[key];
     removePersistedKey(key);
     if (options.logging)
         console.log("removed" + key);
-}
+};
+
 
 /*
  * This function removes all keys in the database, and immediately
- * 	deletes all keys from the file system asynchronously.
+ *  deletes all keys from the file system asynchronously.
  */
 exports.clear = function () {
     var keys = Object.keys(data);
@@ -174,14 +182,16 @@ exports.clear = function () {
         removePersistedKey(keys[i]);
     }
     data = {};
-}
+};
+
 
 /*
  * This function returns the number of keys stored in the database.
  */
 exports.length = function () {
     return Object.keys(data).length;
-}
+};
+
 
 /*
  * This function triggers the database to persist asynchronously.
@@ -192,7 +202,8 @@ exports.persist = function () {
             exports.persistKey(key);
         }
     }
-}
+};
+
 
 /*
  * This function triggers the database to persist synchronously.
@@ -203,7 +214,8 @@ exports.persistSync = function () {
             exports.persistKeySync(key);
         }
     }
-}
+};
+
 
 /*
  * This function triggers a key within the database to persist asynchronously.
@@ -213,8 +225,9 @@ exports.persistKey = function (key) {
     fs.writeFile(path.join(options.dir, key), json, options.encoding);
     changes[key] = false;
     if (options.logging)
-        console.log("wrote: " + key)
-}
+        console.log("wrote: " + key);
+};
+
 
 /*
  * This function triggers a key within the database to persist synchronously.
@@ -229,8 +242,9 @@ exports.persistKeySync = function (key) {
     changes[key] = false;
 
     if (options.logging)
-        console.log("wrote: " + key)
-}
+        console.log("wrote: " + key);
+};
+
 
 //helper functions
 
@@ -244,14 +258,15 @@ var removePersistedKey = function (key) {
             });
         }
     });
-}
+};
+
 
 var setOptions = function (userOptions) {
     if (!userOptions) {
         options = defaults;
     } else {
         for (var key in defaults) {
-            if (userOptions[key] != undefined) {
+            if (userOptions[key]) {
                 options[key] = userOptions[key];
             } else {
                 options[key] = defaults[key];
@@ -268,15 +283,28 @@ var setOptions = function (userOptions) {
         }
 
     }
-}
+};
+
+
+var parseString = function(str){
+    try{
+        return options.parse(str);
+    }catch(e){
+        if(options.logging){
+            console.log("parse error: ", e);
+        }
+        return {};
+    }
+};
+
 
 var parseFile = function (key) {
     fs.readFile(path.join(options.dir, key), options.encoding, function (err, json) {
         if (err) throw err;
-        var value = options.parse(json);
+        var value = parseString(json);
         data[key] = value;
         if (options.logging) {
             console.log("loaded: " + key);
         }
     });
-}
+};
