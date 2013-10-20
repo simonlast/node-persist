@@ -34,7 +34,7 @@ This is still a work in progress. Send pull requests please.
 	open up localhost:8080
 	
 ##Options
-You can pass init or initSync a hash options to customize the behavior of node-persist
+You can pass init or initSync an options object to customize the behavior of node-persist
 	
 	storage.init({
 		dir:'relative/path/to/persist',
