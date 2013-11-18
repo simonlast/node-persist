@@ -84,6 +84,9 @@ exports.initSync = function (userOptions) {
         console.log(options);
     }
 
+    //remove cached data
+    data = {};
+
     //check to see if dir is present
     var exists = fs.existsSync(options.dir);
     if (exists) { //load data
