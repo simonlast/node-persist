@@ -39,6 +39,9 @@ exports.init = function (userOptions) {
         console.log(options);
     }
 
+    //remove cached data
+    data = {};
+
     //check to see if dir is present
     fs.exists(options.dir, function (exists) {
         if (exists) {
