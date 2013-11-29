@@ -96,7 +96,7 @@ exports.initSync = function (userOptions) {
             if (curr[0] !== '.') {
                 var json = fs.readFileSync(path.join(options.dir, curr),
                     options.encoding);
-                var value = parseString(json);
+                var value = parseString(json || '{}');
                 data[curr] = value;
             }
         }
