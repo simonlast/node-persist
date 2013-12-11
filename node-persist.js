@@ -154,12 +154,12 @@ exports.valuesWithKeyMatch = function(match, callback) {
 /*
  * This function sets a key to a given value in the database.
  */
-exports.setItem = function (key, value) {
+exports.setItem = function (key, value, cb) {
     data[key] = value;
     if (options.interval) {
         changes[key] = true;
     } else if (options.continuous) {
-        exports.persistKey(key);
+        exports.persistKey(key, cb);
     }
     if (options.logging)
         console.log("set (" + key + ": " + value + ")");
@@ -226,9 +226,9 @@ exports.persistSync = function () {
 /*
  * This function triggers a key within the database to persist asynchronously.
  */
-exports.persistKey = function (key) {
+exports.persistKey = function (key, cb) {
     var json = options.stringify(data[key]);
-    fs.writeFile(path.join(options.dir, key), json, options.encoding);
+    fs.writeFile(path.join(options.dir, key), json, options.encoding, cb);
     changes[key] = false;
     if (options.logging)
         console.log("wrote: " + key);
