@@ -14,28 +14,28 @@ This is still a work in progress. Send pull requests please.
 ##Basic Example
 	//you must first call storage.init or storage.initSync
 	storage.initSync();
-	
+
 	//then start using it
 	storage.setItem('name','yourname');
 	console.log(storage.getItem('name'));
-	
+
 	var batman = {
 		first: 'Bruce',
 		last: 'Wayne',
 		alias: 'Batman'
 	};
-	
+
 	storage.setItem('batman',batman);
 	console.log(storage.getItem('batman').alias);
-	
+
 ##Run the examples:
 	cd examples/examplename
 	node examplename.js
 	open up localhost:8080
-	
+
 ##Options
 You can pass init or initSync an options object to customize the behavior of node-persist
-	
+
 	storage.init({
 		dir:'relative/path/to/persist',
 		stringify: JSON.stringify,
@@ -45,7 +45,7 @@ You can pass init or initSync an options object to customize the behavior of nod
 		continuous: true,
 		interval: false
 	});
-	
+
 ##Documentation
 By default, node-persist persists a key directly after persistSync is called on it.
 
@@ -57,7 +57,7 @@ By default, node-persist persists a key directly after persistSync is called on 
 
 ###getItem(key)
 This function will get a key from your database, and return its value, or undefined if it is not present.
-	
+
 	storage.getItem('name');
 	storage.getItem('obj').key1;
 	storage.getItem('arr')[42];
@@ -68,11 +68,11 @@ This function sets 'key' in your database to 'value'. It also sets a flag, notif
 
 	storage.setItem('fibonacci',[0,1,1,2,3,5,8]);
 	storage.setItem(42,'the answer to life, the universe, and everything.')
-	
+
 	var batman = storage.getItem('batman');
 	batman.sidekick = 'Robin';
 	storage.setItem('batman',batman); //this ensures the object is persisted
-	
+
 ###removeItem(key)
 This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously.
 
@@ -95,8 +95,8 @@ This function removes all keys in the database, and immediately deletes all keys
 This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.
 
 ###length()
-This function returns the number of keys stored in the database.	
-	
+This function returns the number of keys stored in the database.
+
 ##Fine-grained control
 Make sure you set continuous: false in the options hash, and you don't set an interval
 ###persist(), persistSync()
@@ -110,16 +110,7 @@ These functions can be used to manually persist the database
 These functions manually persist 'key' within the database
 
 		storage.setItem('name','myname');
-		storage.persistKey('name'); 
-		
+		storage.persistKey('name');
 
-###Changelog
-10/31/12: Made keys persist immediately after setItem is called. This eliminates the risk of losing keys if your process crashes.
 
-10/31/12: Made examples prettier	
-
-###TODO
-1. Make some tests
-2. Make more examples	
-
-###[Simon Last](http://simonlast.org)		
+###[Simon Last](http://simonlast.org)

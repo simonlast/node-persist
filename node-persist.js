@@ -3,11 +3,11 @@
  * http://simonlast.org
  */
 
-var fs = require('fs');
-var path = require('path');
-var mkdirp = require("mkdirp");
-var _ = require("underscore");
-var sugar = require("sugar");
+var fs     = require('fs'),
+    path   = require('path'),
+    mkdirp = require("mkdirp"),
+    _      = require("underscore"),
+    sugar  = require("sugar");
 
 var options = {};
 var defaults = {
@@ -252,7 +252,9 @@ exports.persistKeySync = function (key) {
 };
 
 
-//helper functions
+/*
+ * Helper functions.
+ */
 
 var removePersistedKey = function (key) {
     //check to see if key has been persisted
