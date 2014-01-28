@@ -301,7 +301,7 @@ var parseString = function(str){
         if(options.logging){
             console.log("parse error: ", e);
         }
-        return {};
+        return undefined;
     }
 };
 
