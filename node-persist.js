@@ -240,11 +240,7 @@ exports.persistKey = function (key, cb) {
  */
 exports.persistKeySync = function (key) {
     var json = options.stringify(data[key]);
-    fs.writeFile(path.join(options.dir, key), json,
-        options.encoding, function (err) {
-            if (err) throw err;
-        }
-    );
+    fs.writeFileSync(path.join(options.dir, key), json);
     changes[key] = false;
 
     if (options.logging)
