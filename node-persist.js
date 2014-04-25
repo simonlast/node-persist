@@ -280,7 +280,7 @@ var setOptions = function (userOptions) {
         // dir is not absolute
         options.dir = path.normalize(options.dir);
         if (options.dir !== path.resolve(options.dir)) {
-            options.dir = path.join(dir, "persist", options.dir);
+            options.dir = path.join(dir, options.dir);
             if (options.logging) {
                 console.log("Made dir absolute: " + options.dir);
             }
