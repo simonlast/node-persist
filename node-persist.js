@@ -17,7 +17,8 @@ var defaults = {
     encoding: 'utf8',
     logging: false,
     continuous: true,
-    interval: false
+    interval: false,
+    encodeFilename: false
 };
 
 var data = {};
@@ -50,6 +51,7 @@ exports.init = function (userOptions) {
                 for (var i in arr) {
                     var curr = arr[i];
                     if (curr[0] !== '.') {
+                        if(options.encodeFilename) curr = new Buffer(curr, 'base64').toString();
                         parseFile(curr);
                     }
                 }
@@ -94,7 +96,8 @@ exports.initSync = function (userOptions) {
         for (var i in arr) {
             var curr = arr[i];
             if (curr[0] !== '.') {
-                var json = fs.readFileSync(path.join(options.dir, curr),
+                if(options.encodeFilename) curr = new Buffer(curr, 'base64').toString();
+                var json = fs.readFileSync(getFilename(curr),
                     options.encoding);
                 var value = parseString(json);
                 data[curr] = value;
@@ -228,7 +231,7 @@ exports.persistSync = function () {
  */
 exports.persistKey = function (key, cb) {
     var json = options.stringify(data[key]);
-    fs.writeFile(path.join(options.dir, key), json, options.encoding, cb);
+    fs.writeFile(getFilename(key), json, options.encoding, cb);
     changes[key] = false;
     if (options.logging)
         console.log("wrote: " + key);
@@ -240,7 +243,7 @@ exports.persistKey = function (key, cb) {
  */
 exports.persistKeySync = function (key) {
     var json = options.stringify(data[key]);
-    fs.writeFileSync(path.join(options.dir, key), json);
+    fs.writeFileSync(getFilename(key), json);
     changes[key] = false;
 
     if (options.logging)
@@ -254,7 +257,7 @@ exports.persistKeySync = function (key) {
 
 var removePersistedKey = function (key) {
     //check to see if key has been persisted
-    var file = path.join(options.dir, key);
+    var file = getFilename(key);
     fs.exists(file, function (exists) {
         if (exists) {
             fs.unlink(file, function (err) {
@@ -303,7 +306,7 @@ var parseString = function(str){
 
 
 var parseFile = function (key) {
-    fs.readFile(path.join(options.dir, key), options.encoding, function (err, json) {
+    fs.readFile(getFilename(key), options.encoding, function (err, json) {
         if (err) throw err;
         var value = parseString(json);
         data[key] = value;
@@ -311,4 +314,13 @@ var parseFile = function (key) {
             console.log("loaded: " + key);
         }
     });
+};
+
+
+var getFilename = function (key) {
+console.log(key);
+    if(options.encodeFilename) {
+        return path.join(options.dir, new Buffer(key).toString('base64'));
+    }
+    return path.join(options.dir, key);
 };
