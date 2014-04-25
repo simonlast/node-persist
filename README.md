@@ -43,7 +43,8 @@ You can pass init or initSync an options object to customize the behavior of nod
 		encoding: 'utf8',
 		logging: false,
 		continuous: true,
-		interval: false
+		interval: false,
+		encodeFilename: false
 	});
 
 ##Documentation
