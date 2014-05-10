@@ -37,7 +37,7 @@ exports.init = function (userOptions) {
 
     if (options.logging) {
         log("options:");
-        log(options);
+        log(options.stringify(options));
     }
 
     //remove cached data
@@ -82,7 +82,7 @@ exports.initSync = function (userOptions) {
 
     if (options.logging) {
         log("options:");
-        log(options);
+        log(options.stringify(options));
     }
 
     //remove cached data
@@ -163,7 +163,7 @@ exports.setItem = function (key, value, cb) {
         exports.persistKey(key, cb);
     }
     if (options.logging)
-        log("set (" + key + ": " + value + ")");
+        log("set (" + key + ": " + options.stringify(value) + ")");
 };
 
 
@@ -303,7 +303,7 @@ var parseString = function(str){
         return options.parse(str);
     }catch(e){
         if(options.logging){
-            log("parse error: ", e);
+            log("parse error: ", options.stringify(e));
         }
         return undefined;
     }
