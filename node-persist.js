@@ -22,6 +22,7 @@ var defaults = {
 
 var data = {};
 var changes = {};
+var log = console.log;
 
 var dir = __dirname;
 
@@ -35,8 +36,8 @@ exports.init = function (userOptions) {
     setOptions(userOptions);
 
     if (options.logging) {
-        console.log("options:");
-        console.log(options);
+        log("options:");
+        log(options);
     }
 
     //remove cached data
@@ -59,7 +60,7 @@ exports.init = function (userOptions) {
             //create the directory
             mkdirp(options.dir, function (err) {
                 if (err) console.error(err);
-                else if(options.logging) console.log('created ' + options.dir);
+                else if(options.logging) log('created ' + options.dir);
 
             });
         }
@@ -80,8 +81,8 @@ exports.initSync = function (userOptions) {
     setOptions(userOptions);
 
     if (options.logging) {
-        console.log("options:");
-        console.log(options);
+        log("options:");
+        log(options);
     }
 
     //remove cached data
@@ -162,7 +163,7 @@ exports.setItem = function (key, value, cb) {
         exports.persistKey(key, cb);
     }
     if (options.logging)
-        console.log("set (" + key + ": " + value + ")");
+        log("set (" + key + ": " + value + ")");
 };
 
 
@@ -174,7 +175,7 @@ exports.removeItem = function (key) {
     delete data[key];
     removePersistedKey(key);
     if (options.logging)
-        console.log("removed" + key);
+        log("removed" + key);
 };
 
 
@@ -231,7 +232,7 @@ exports.persistKey = function (key, cb) {
     fs.writeFile(path.join(options.dir, key), json, options.encoding, cb);
     changes[key] = false;
     if (options.logging)
-        console.log("wrote: " + key);
+        log("wrote: " + key);
 };
 
 
@@ -244,7 +245,7 @@ exports.persistKeySync = function (key) {
     changes[key] = false;
 
     if (options.logging)
-        console.log("wrote: " + key);
+        log("wrote: " + key);
 };
 
 
@@ -282,10 +283,17 @@ var setOptions = function (userOptions) {
         if (options.dir !== path.resolve(options.dir)) {
             options.dir = path.join(dir, "persist", options.dir);
             if (options.logging) {
-                console.log("Made dir absolute: " + options.dir);
+                log("Made dir absolute: " + options.dir);
             }
         }
 
+    }
+    
+    // Check to see if we recieved an external logging function
+    if (options.logging && typeof options.logging === 'function') {
+        // Overwrite log function with external logging function
+        log = options.logging;
+        options.logging = true;
     }
 };
 
@@ -295,7 +303,7 @@ var parseString = function(str){
         return options.parse(str);
     }catch(e){
         if(options.logging){
-            console.log("parse error: ", e);
+            log("parse error: ", e);
         }
         return undefined;
     }
@@ -308,7 +316,7 @@ var parseFile = function (key) {
         var value = parseString(json);
         data[key] = value;
         if (options.logging) {
-            console.log("loaded: " + key);
+            log("loaded: " + key);
         }
     });
 };
