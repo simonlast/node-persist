@@ -41,7 +41,7 @@ You can pass init or initSync an options object to customize the behavior of nod
 		stringify: JSON.stringify,
 		parse: JSON.parse,
 		encoding: 'utf8',
-		logging: false,
+		logging: false,  // can also be custom logging function
 		continuous: true,
 		interval: false
 	});
