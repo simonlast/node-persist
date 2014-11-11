@@ -6,8 +6,7 @@
 var fs     = require('fs'),
     path   = require('path'),
     mkdirp = require("mkdirp"),
-    _      = require("underscore"),
-    sugar  = require("sugar");
+    _      = require("underscore");
 
 var options = {};
 var defaults = {
@@ -17,7 +16,8 @@ var defaults = {
     encoding: 'utf8',
     logging: false,
     continuous: true,
-    interval: false
+    interval: false,
+    ttl: false
 };
 
 var data = {};
@@ -26,12 +26,25 @@ var log = console.log;
 
 var dir = __dirname;
 
+var noop = function(err) {
+    if (err) throw err;
+};
+
+// to support backward compatible callbacks,
+// i.e callback(data) vs callback(err, data);
+// replace with noop and fix args order,
+// when ready to break backward compatibily for the following API functions
+// * values()
+// * valuesWithKeyMatch()
+// look for 'todo-breaks-backward'
+var noopWithoutError = function() {};
+
 
 /*
  * This function, (or initSync) must be called before the library can be used.
  * An options hash can be optionally passed.
  */
-exports.init = function (userOptions) {
+exports.init = function (userOptions, callback) {
 
     setOptions(userOptions);
 
@@ -51,7 +64,9 @@ exports.init = function (userOptions) {
                 for (var i in arr) {
                     var curr = arr[i];
                     if (curr[0] !== '.') {
-                        parseFile(curr);
+                        parseFile(curr, function() {
+
+                        });
                     }
                 }
             });
@@ -139,31 +154,55 @@ exports.getItem = function (key) {
  * This function returns all the values in the database.
  */
 exports.values = function(callback) {
-        callback(_.values(data));
+    // todo-breaks-backward: change to ': noopWithoutError;'
+    callback = _.isFunction(callback) ? callback : noopWithoutError;
+
+    var values = _.values(data);
+
+    // todo-breaks-backward: change to 'callback(null, values);'
+    // @akhoury:note: this is synchronous all the time, you don't need a callback, I would get rid of it
+    callback(values);
+    return values;
 };
 
 
 exports.valuesWithKeyMatch = function(match, callback) {
-    callback(
-        _.filter(data, function(value, key){
-            console.log(key);
-            return key.has(match);
-        }));
+    // todo-breaks-backward: change to ': noopWithoutError;'
+    callback = _.isFunction(callback) ? callback : noopWithoutError;
+
+    var values = _.filter(data, function(value, key){
+        return key.has(match);
+    });
+
+    // todo-breaks-backward: change to 'callback(null, values);'
+    // @akhoury:note: this is synchronous all the time, you don't need a callback, I would get rid of it
+    callback(values);
+    return values;
 };
 
 
 /*
  * This function sets a key to a given value in the database.
  */
-exports.setItem = function (key, value, cb) {
+exports.setItem = function (key, value, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+    var msg = "set (" + key + ": " + options.stringify(value) + ")";
+
     data[key] = value;
     if (options.interval) {
         changes[key] = true;
+        if (options.logging)
+            log(msg);
+        callback(null, {key: key, value: value, queued: true});
     } else if (options.continuous) {
-        exports.persistKey(key, cb);
+        exports.persistKey(key, function(err, ret) {
+            if (err) return callback(err);
+            if (options.logging)
+                log(msg);
+            ret.queued = false;
+            callback(null, ret);
+        });
     }
-    if (options.logging)
-        log("set (" + key + ": " + options.stringify(value) + ")");
 };
 
 
@@ -171,11 +210,18 @@ exports.setItem = function (key, value, cb) {
  * This function removes key in the database if it is present, and
  *  immediately deletes it from the file system asynchronously.
  */
-exports.removeItem = function (key) {
+exports.removeItem = function (key, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
     delete data[key];
-    removePersistedKey(key);
-    if (options.logging)
-        log("removed" + key);
+    removePersistedKey(key, function(err, data) {
+        if (err) return callback(err);
+
+        if (options.logging) {
+            log("removed" + key);
+        }
+        callback(null, data);
+    });
 };
 
 
@@ -183,7 +229,10 @@ exports.removeItem = function (key) {
  * This function removes all keys in the database, and immediately
  *  deletes all keys from the file system asynchronously.
  */
-exports.clear = function () {
+exports.clear = function (callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
+    // todo, callback all
     var keys = Object.keys(data);
     for (var i = 0; i < keys.length; i++) {
         removePersistedKey(keys[i]);
@@ -203,10 +252,12 @@ exports.length = function () {
 /*
  * This function triggers the database to persist asynchronously.
  */
-exports.persist = function () {
+exports.persist = function (callback) {
     for (var key in data) {
         if (changes[key]) {
-            exports.persistKey(key);
+            exports.persistKey(key, function() {
+
+            });
         }
     }
 };
@@ -227,12 +278,23 @@ exports.persistSync = function () {
 /*
  * This function triggers a key within the database to persist asynchronously.
  */
-exports.persistKey = function (key, cb) {
+exports.persistKey = function (key, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
     var json = options.stringify(data[key]);
-    fs.writeFile(path.join(options.dir, key), json, options.encoding, cb);
-    changes[key] = false;
-    if (options.logging)
-        log("wrote: " + key);
+    var file = path.join(options.dir, key);
+
+    fs.writeFile(file, json, options.encoding, function(err) {
+        if (err) return callback(err);
+
+        changes[key] = false;
+        if (options.logging) {
+            log("wrote: " + key);
+        }
+
+        callback(null, {key: key, data: json, file: file});
+    });
+
 };
 
 
@@ -243,7 +305,6 @@ exports.persistKeySync = function (key) {
     var json = options.stringify(data[key]);
     fs.writeFileSync(path.join(options.dir, key), json);
     changes[key] = false;
-
     if (options.logging)
         log("wrote: " + key);
 };
@@ -253,14 +314,18 @@ exports.persistKeySync = function (key) {
  * Helper functions.
  */
 
-var removePersistedKey = function (key) {
+var removePersistedKey = function (key, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
     //check to see if key has been persisted
     var file = path.join(options.dir, key);
     fs.exists(file, function (exists) {
         if (exists) {
             fs.unlink(file, function (err) {
-                if (err) throw err;
+                callback(err, {key: key, removed: !err, exists: true});
             });
+        } else {
+            callback(null, {key: key, removed: false, exists: false});
         }
     });
 };
@@ -299,9 +364,9 @@ var setOptions = function (userOptions) {
 
 
 var parseString = function(str){
-    try{
+    try {
         return options.parse(str);
-    }catch(e){
+    } catch(e){
         if(options.logging){
             log("parse error: ", options.stringify(e));
         }
@@ -310,13 +375,18 @@ var parseString = function(str){
 };
 
 
-var parseFile = function (key) {
-    fs.readFile(path.join(options.dir, key), options.encoding, function (err, json) {
-        if (err) throw err;
+var parseFile = function (key, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
+    var file = path.join(options.dir, key);
+    fs.readFile(file, options.encoding, function (err, json) {
+        if (err) return callback(err);
+
         var value = parseString(json);
         data[key] = value;
         if (options.logging) {
             log("loaded: " + key);
         }
+        callback(null, {key: key, value: value, file: file});
     });
 };
