@@ -7,18 +7,26 @@
  * It will probably be incremented several times per page due to
  * multiple requests.
  */
+
 var storage = require('../../../node-persist');
 var http = require('http');
 
-storage.initSync();
+storage.init({
+    logging: true,
+    ttl: 30000
+}).then(function() {
+    debugger;
 
-if(!storage.getItem('counter')){
-	storage.setItem('counter',0);
-}
-console.log("counter is: " + storage.getItem('counter'));
+    if(!storage.getItem('counter')) {
+      storage.setItem('counter', 0);
+    }
+    console.log("counter is: " + storage.getItem('counter'));
+}, function(err) {
+    console.error(err);
+});
 
 http.createServer(function (req, res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-  storage.setItem('counter', storage.getItem('counter') + 1);
-  res.end("counter is: " + storage.getItem('counter'));
-}).listen(8080, '127.0.0.1');
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    storage.setItem('counter', storage.getItem('counter') + 1);
+    res.end("counter is: " + storage.getItem('counter'));
+}).listen(8081, '127.0.0.1');

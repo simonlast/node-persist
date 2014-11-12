@@ -6,6 +6,7 @@
 var fs     = require('fs'),
     path   = require('path'),
     mkdirp = require("mkdirp"),
+    Q      = require('q'),
     _      = require("underscore");
 
 var options = {};
@@ -20,9 +21,20 @@ var defaults = {
     ttl: false
 };
 
+var defaultTTL = 7 * 24 * 60 * 60 * 1000 /* ttl is truthy but not a number ? 1 week default */;
+
 var data = {};
 var changes = {};
-var log = console.log;
+
+var log = function() {
+    if (options.logging) {
+        console.log.apply(console, arguments);
+    }
+};
+
+var isNumber = function(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+};
 
 var dir = __dirname;
 
@@ -45,28 +57,35 @@ var noopWithoutError = function() {};
  * An options hash can be optionally passed.
  */
 exports.init = function (userOptions, callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
+    var deferred = Q.defer();
+    var result;
+    var deferreds = [];
 
     setOptions(userOptions);
 
-    if (options.logging) {
-        log("options:");
-        log(options.stringify(options));
-    }
+    log("options:", options.stringify(options));
 
     //remove cached data
     data = {};
+
+    result = {dir: options.dir};
 
     //check to see if dir is present
     fs.exists(options.dir, function (exists) {
         if (exists) {
             //load data
             fs.readdir(options.dir, function (err, arr) {
+                if (err) {
+                    deferred.reject(err);
+                    callback(err);
+                }
+
                 for (var i in arr) {
                     var curr = arr[i];
                     if (curr[0] !== '.') {
-                        parseFile(curr, function() {
-
-                        });
+                        deferreds.push(parseFile(curr));
                     }
                 }
             });
@@ -74,16 +93,39 @@ exports.init = function (userOptions, callback) {
 
             //create the directory
             mkdirp(options.dir, function (err) {
-                if (err) console.error(err);
-                else if(options.logging) log('created ' + options.dir);
-
+                if (err) {
+                    console.error(err);
+                    deferred.reject(err);
+                    callback(err);
+                } else {
+                    log('created ' + options.dir);
+                    deferred.resolve(result);
+                    callback(null, result);
+                }
             });
         }
     });
 
     //start persisting
-    if (options.interval && options.interval > 0)
-        setInterval(exports.persist, options.interval);
+    if (options.interval && options.interval > 0) {
+        exports._persistInterval = setInterval(function() {
+            exports._persistDeferred = exports.persist();
+        }, options.interval);
+    }
+
+    if (deferreds.length) {
+        Q.all(deferreds).then(
+            function() {
+                deferred.resolve(result);
+                callback(null, result);
+            },
+            function(err) {
+                deferred.resolve(err);
+                callback(null, err);
+            });
+    }
+
+    return deferred.promise;
 };
 
 
@@ -146,7 +188,15 @@ exports.key = function (n) {
  *  or undefined if it is not present.
  */
 exports.getItem = function (key) {
-    return data[key];
+    if (!options.ttl) {
+        return data[key];
+    }
+    var ttl = data[key + '-ttl'];
+    if (ttl < (new Date()).getTime()) {
+        exports.removeItem(key);
+    } else {
+        return data[key];
+    }
 };
 
 
@@ -186,25 +236,56 @@ exports.valuesWithKeyMatch = function(match, callback) {
  */
 exports.setItem = function (key, value, callback) {
     callback = _.isFunction(callback) ? callback : noop;
-    var msg = "set (" + key + ": " + options.stringify(value) + ")";
+
+    var result;
+    var logmsg = "set (" + key + ": " + options.stringify(value) + ")";
+
+    var deferred = Q.defer();
+    var deferreds = [];
+
+    console.log('setItem', key, value);
 
     data[key] = value;
+    if (options.ttl) {
+        data[key + '-ttl'] = new Date().getTime() + options.ttl;
+    }
+
+    result = {key: key, value: value};
+
     if (options.interval) {
         changes[key] = true;
-        if (options.logging)
-            log(msg);
-        callback(null, {key: key, value: value, queued: true});
-    } else if (options.continuous) {
-        exports.persistKey(key, function(err, ret) {
-            if (err) return callback(err);
-            if (options.logging)
-                log(msg);
-            ret.queued = false;
-            callback(null, ret);
-        });
-    }
-};
 
+        if (options.ttl) {
+            changes[key + '-ttl'] = true;
+        }
+
+        log(logmsg);
+        callback(null, result);
+        result.queued = true;
+        return Q.defer().resolve(result).promise;
+
+    } else if (options.continuous) {
+        deferreds.push(exports.persistKey(key));
+        if (options.ttl) {
+            deferreds.push(exports.persistKey(key + '-ttl'));
+        }
+
+        Q.all(deferreds).then(
+            function(result) {
+                result = result || {};
+                log(logmsg);
+                result.queued = false;
+                deferred.resolve(result);
+                callback(null, result);
+            },
+            function(err) {
+                deferred.resolve(err);
+                callback(err);
+            });
+    }
+
+    return deferred.promise;
+};
 
 /*
  * This function removes key in the database if it is present, and
@@ -213,15 +294,29 @@ exports.setItem = function (key, value, callback) {
 exports.removeItem = function (key, callback) {
     callback = _.isFunction(callback) ? callback : noop;
 
-    delete data[key];
-    removePersistedKey(key, function(err, data) {
-        if (err) return callback(err);
+    var deferred = Q.defer();
+    var deferreds = [];
 
-        if (options.logging) {
+    deferreds.push(removePersistedKey(key));
+    if (options.ttl) {
+        deferreds.push(removePersistedKey(key + '-ttl'));
+    }
+
+    Q.all(deferreds).then(
+        function() {
+            delete data[key];
+            if (options.ttl) {
+                delete data[key];
+            }
             log("removed" + key);
+            callback(null, data);
+            deferred.resolve(data);
+        },
+        function(err) {
+            callback(err);
+            deferred.reject(err);
         }
-        callback(null, data);
-    });
+    );
 };
 
 
@@ -232,12 +327,27 @@ exports.removeItem = function (key, callback) {
 exports.clear = function (callback) {
     callback = _.isFunction(callback) ? callback : noop;
 
-    // todo, callback all
+    var deferred = Q.defer();
+    var result;
+    var deferreds = [];
+
     var keys = Object.keys(data);
     for (var i = 0; i < keys.length; i++) {
-        removePersistedKey(keys[i]);
+        deferreds.push(removePersistedKey(keys[i]));
     }
-    data = {};
+
+    Q.all(deferreds).then(
+        function(result) {
+            data = {};
+            deferred.resolve(result);
+            callback(null, result);
+        },
+        function(err) {
+            deferred.reject(result);
+            callback(err);
+        });
+
+    return deferred.promise;
 };
 
 
@@ -253,13 +363,29 @@ exports.length = function () {
  * This function triggers the database to persist asynchronously.
  */
 exports.persist = function (callback) {
+    callback = _.isFunction(callback) ? callback : noop;
+
+    var deferred = Q.defer();
+    var result;
+    var deferreds = [];
+
     for (var key in data) {
         if (changes[key]) {
-            exports.persistKey(key, function() {
-
-            });
+            deferreds.push(exports.persistKey(key));
         }
     }
+
+    Q.all(deferreds).then(
+        function(result) {
+            deferred.resolve(result);
+            callback(null, result);
+        },
+        function(err) {
+            deferred.reject(result);
+            callback(err);
+        });
+
+    return deferred.promise;
 };
 
 
@@ -284,17 +410,26 @@ exports.persistKey = function (key, callback) {
     var json = options.stringify(data[key]);
     var file = path.join(options.dir, key);
 
-    fs.writeFile(file, json, options.encoding, function(err) {
-        if (err) return callback(err);
+    console.log("persisting:" + file, json);
 
-        changes[key] = false;
-        if (options.logging) {
-            log("wrote: " + key);
+    var deferred = Q.defer();
+    var result;
+
+    fs.writeFile(file, json, options.encoding, function(err) {
+        if (err) {
+            deferred.reject(err);
+            return callback(err);
         }
 
-        callback(null, {key: key, data: json, file: file});
+        changes[key] = false;
+        log("wrote: " + key);
+        result = {key: key, data: json, file: file};
+
+        deferred.resolve(result);
+        callback(null, result);
     });
 
+    return deferred.promise;
 };
 
 
@@ -305,8 +440,7 @@ exports.persistKeySync = function (key) {
     var json = options.stringify(data[key]);
     fs.writeFileSync(path.join(options.dir, key), json);
     changes[key] = false;
-    if (options.logging)
-        log("wrote: " + key);
+    log("wrote: " + key);
 };
 
 
@@ -317,17 +451,32 @@ exports.persistKeySync = function (key) {
 var removePersistedKey = function (key, callback) {
     callback = _.isFunction(callback) ? callback : noop;
 
+    var deferred = Q.defer();
+    var result;
+
     //check to see if key has been persisted
     var file = path.join(options.dir, key);
     fs.exists(file, function (exists) {
         if (exists) {
             fs.unlink(file, function (err) {
-                callback(err, {key: key, removed: !err, exists: true});
+                result = {key: key, removed: !err, exists: true};
+
+                if (err) {
+                    deferred.reject(err);
+                    return callback(err, result);
+                }
+
+                deferred.resolve(result);
+                callback(err, result);
             });
         } else {
-            callback(null, {key: key, removed: false, exists: false});
+            result = {key: key, removed: false, exists: false};
+            deferred.resolve(result);
+            callback(err, result);
         }
     });
+
+    return deferred.promise;
 };
 
 
@@ -347,15 +496,14 @@ var setOptions = function (userOptions) {
         options.dir = path.normalize(options.dir);
         if (options.dir !== path.resolve(options.dir)) {
             options.dir = path.join(dir, "persist", options.dir);
-            if (options.logging) {
-                log("Made dir absolute: " + options.dir);
-            }
+            log("Made dir absolute: " + options.dir);
         }
 
+        options.ttl = options.ttl ? isNumber(options.ttl) && options.ttl > 0 ? options.ttl : defaultTTL : false;
     }
-    
-    // Check to see if we recieved an external logging function
-    if (options.logging && typeof options.logging === 'function') {
+
+    // Check to see if we received an external logging function
+    if (_.isFunction(options.logging)) {
         // Overwrite log function with external logging function
         log = options.logging;
         options.logging = true;
@@ -366,10 +514,8 @@ var setOptions = function (userOptions) {
 var parseString = function(str){
     try {
         return options.parse(str);
-    } catch(e){
-        if(options.logging){
-            log("parse error: ", options.stringify(e));
-        }
+    } catch(e) {
+        log("parse error: ", options.stringify(e));
         return undefined;
     }
 };
@@ -378,15 +524,25 @@ var parseString = function(str){
 var parseFile = function (key, callback) {
     callback = _.isFunction(callback) ? callback : noop;
 
+    var deferred = Q.defer();
+    var result;
     var file = path.join(options.dir, key);
+
     fs.readFile(file, options.encoding, function (err, json) {
-        if (err) return callback(err);
+        if (err) {
+            deferred.reject(err);
+            return callback(err);
+        }
 
         var value = parseString(json);
         data[key] = value;
-        if (options.logging) {
-            log("loaded: " + key);
-        }
-        callback(null, {key: key, value: value, file: file});
+
+        log("loaded: " + key);
+
+        result = {key: key, value: value, file: file};
+        deferred.resolve(result);
+        callback(null, result);
     });
+
+    return deferred.promise;
 };
