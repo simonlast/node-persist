@@ -46,8 +46,12 @@ $ node examplename.js
 $ open up localhost:8080
 ```
 
-## Options
-You can pass init or initSync an options object to customize the behavior of node-persist
+## API Documentation
+
+### `init(options, [callback])` - asynchronous*, returns Promise
+This function reads what's on disk and loads it into memory, if the storage dir is new, it will create it
+#### Options
+You can pass `init()` or `initSync()` an options object to customize the behavior of node-persist
 
 ```js
 storage.init({
@@ -57,21 +61,22 @@ storage.init({
 	encoding: 'utf8',
 	logging: false,  // can also be custom logging function
 	continuous: true,
-	interval: false
-});
+	interval: false,
+	ttl: false, // [NEW] can be true for 1 week default or a number in milliseconds
+}, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
-
-## Documentation
-By default, node-persist persists a key directly after persistSync is called on it.
-
-### Node-persist has 3 ways of running:
+##### Node-persist has 3 ways of running:
 
 1. By default, keys will be persisted after every call of setItem
 2. If you set an interval, node-persist will persist changed keys at that interval instead of after every call of setItem.
 3. If you set continuous to false and don't specify an interval, keys aren't persisted automatically, giving you complete control over when to persist them.
 
-###getItem(key)
-This function will get a key from your database, and return its value, or undefined if it is not present.
+### `initSync(options)` - synchronous, throws Error on failure 
+like `init()` but synchronous,
+
+
+### `getItem(key)` - synchronous, returns "value"
+This function will get a key from your database in memory, and return its value, or undefined if it is not present.
 
 ```js
 storage.getItem('name');
@@ -79,64 +84,101 @@ storage.getItem('obj').key1;
 storage.getItem('arr')[42];
 ```
 
-### `setItem(key, value)`
+### `setItem(key, value, [callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
 
 ```js
 storage.setItem('fibonacci',[0,1,1,2,3,5,8]);
-storage.setItem(42,'the answer to life, the universe, and everything.')
+storage.setItem(42,'the answer to life, the universe, and everything.', function(err) {
+    // done
+});
 
 var batman = storage.getItem('batman');
 batman.sidekick = 'Robin';
-storage.setItem('batman',batman); //this ensures the object is persisted
+storage.setItem('batman', batman).then(
+  function() {
+    // success
+  }, 
+  function() {
+     // error
+  })
 ```
+\* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, so, if you set `options.interval=true` or `options.continuous=false`, your (optional) callback or your returned promise from this function will get called/resolved immediately, even if the value has not been persisted to disk yet, either waiting for the interval to kick in or for your manual call to `persist()`
 
-### `removeItem(key)`
+### `setItemSync(key, value)` - synchronous, throws Error on failure
+If you want to immediately persist to disk, __regardless of the `options.interval` and `options.continuous`__ setting, use this function
+
+### `removeItem(key, [callback])` - asynchronous, returns Promise 
 This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously.
 
 ```js
-storage.removeItem('me');
-storage.removeItem(42);
+storage.removeItem('me', /* optional callback */ function(err) {
+  // done 
+}).then(onSuccess, onError); // or use the promise
 ```
+### `removeItemSync(key, [callback])` - synchronous,  throws Error on failure
+```js
+storage.removeItemSync('me');
+```
+### `clear([callback])` - asynchronous, returns Promise 
+This function removes all keys in the database, and immediately deletes all keys from the file system asynchronously.
+### `clearSync()` - synchronous, throws Error on failure
+like `clear()` by synchronous
 
-### `values(callback)`
-This function returns all of the values in the database.
+### `values()` -  synchronous, returns array 
+This function returns all of the values in the database in memory
 
 ```js
 storage.setItem("batman", {name: "Bruce Wayne"});
 storage.setItem("superman", {name: "Clark Kent"});
-storage.values(function(vals){
-    console.log(vals); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
-});
+console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
+```
+### `values(callback)` -  [DEPRECATED] synchronous, but still returns array 
+This function is synchronous, it does not need to accept a callback, so it's getting deprecated
+```js
+// notice this callback does not accept an error as a 1st argument, to support backward compatibility
+// but will be removed on next minor release
+storage.values(function(values) {
+}));
 ```
 
-### `clear()`
-This function removes all keys in the database, and immediately deletes all keys from the file system asynchronously.
-
-### `key(n)`
+### `key(n)` - synchronous, returns string 
 
 This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.
 
-### `length()`
+### `length()` - synchronous, returns number 
 This function returns the number of keys stored in the database.
 
 ## Fine-grained control
-Make sure you set continuous: false in the options hash, and you don't set an interval
+Make sure you set `continuous:false` in the `options` hash, and you don't set an `interval`
 
-### `persist()`, `persistSync()`
-These functions can be used to manually persist the database
-
+### `persist([callback])` - asynchronous, returns Promise 
+These function can be used to manually persist the database
 ```js
-storage.persist();
+storage.persist( /* optional callback */ function(err) {
+    // when done
+}).then(onSuccess, onError); // or you can use the promise
+```
+### `persistSync()` - synchronous, throws Error on failure
+like `persist()` but synchronous
+```js
 storage.persistSync();
 ```
 
-### `persistKey(key)`, `persistKeySync(key)`
-These functions manually persist 'key' within the database
-
+### `persistKey(key, [callback])` - asynchronous, returns Promise 
+This function manually persist a 'key' within the database
 ```js
 storage.setItem('name','myname');
-storage.persistKey('name');
+storage.persistKey('name', /* optional callback */ function(err) {
+    // when done
+}).then(onSuccess, onError); // or you can use the promise
+```
+
+### `persistKeySync(key)`
+like `persistKey()` but synchronous
+```js
+storage.setItem('name','myname');
+storage.persistKeySync('name');
 ```
 
 ### [Simon Last](http://simonlast.org)

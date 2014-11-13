@@ -199,6 +199,18 @@ exports.getItem = function (key) {
     }
 };
 
+exports.getItemSync = function (key) {
+    if (!options.ttl) {
+        return data[key];
+    }
+    var ttl = data[key + '-ttl'];
+    if (ttl < (new Date()).getTime()) {
+        exports.removeItemSync(key);
+    } else {
+        return data[key];
+    }
+};
+
 
 /*
  * This function returns all the values in the database.
@@ -243,8 +255,6 @@ exports.setItem = function (key, value, callback) {
     var deferred = Q.defer();
     var deferreds = [];
 
-    console.log('setItem', key, value);
-
     data[key] = value;
     if (options.ttl) {
         data[key + '-ttl'] = new Date().getTime() + options.ttl;
@@ -287,6 +297,20 @@ exports.setItem = function (key, value, callback) {
     return deferred.promise;
 };
 
+
+/*
+ * This function sets a key to a given value in the database.
+ */
+exports.setItemSync = function (key, value) {
+    data[key] = value;
+    exports.persistKeySync(key);
+    if (options.ttl) {
+        data[key + '-ttl'] = new Date().getTime() + options.ttl;
+        exports.persistKeySync(key + '-ttl');
+    }
+    log("set (" + key + ": " + options.stringify(value) + ")");
+};
+
 /*
  * This function removes key in the database if it is present, and
  *  immediately deletes it from the file system asynchronously.
@@ -306,7 +330,7 @@ exports.removeItem = function (key, callback) {
         function() {
             delete data[key];
             if (options.ttl) {
-                delete data[key];
+                delete data[key + '-ttl'];
             }
             log("removed" + key);
             callback(null, data);
@@ -317,6 +341,22 @@ exports.removeItem = function (key, callback) {
             deferred.reject(err);
         }
     );
+};
+
+/*
+ * This function removes key in the database if it is present, and
+ *  immediately deletes it from the file system synchronously.
+ */
+exports.removeItemSync = function (key) {
+    removePersistedKeySync(key);
+    if (options.ttl) {
+        removePersistedKeySync(key + '-ttl');
+    }
+    delete data[key];
+    if (options.ttl) {
+        delete data[key + '-ttl'];
+    }
+    log("removed" + key);
 };
 
 
@@ -348,6 +388,17 @@ exports.clear = function (callback) {
         });
 
     return deferred.promise;
+};
+
+/*
+ * This function removes all keys in the database, and immediately
+ *  deletes all keys from the file system synchronously.
+ */
+exports.clearSync = function () {
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+        removePersistedKeySync(keys[i]);
+    }
 };
 
 
@@ -409,8 +460,6 @@ exports.persistKey = function (key, callback) {
 
     var json = options.stringify(data[key]);
     var file = path.join(options.dir, key);
-
-    console.log("persisting:" + file, json);
 
     var deferred = Q.defer();
     var result;
@@ -477,6 +526,13 @@ var removePersistedKey = function (key, callback) {
     });
 
     return deferred.promise;
+};
+
+var removePersistedKeySync = function(key) {
+    var file = path.join(options.dir, key);
+    if (fs.existsSync(file)) {
+        return fs.unlinkSync(file);
+    }
 };
 
 
