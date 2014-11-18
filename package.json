@@ -25,11 +25,11 @@
       "url": "http://simonlast.org/"
     },
     {
-      "name": "Ben Monro"
+      "name": "Ben Monro",
+      "url": "https://github.com/benmonro"
     },
     {
       "name": "Aziz Khoury",
-      "email": "bentael@gmail.com",
       "url": "https://github.com/akhoury"
     }
   ],
@@ -37,7 +37,6 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "mkdirp": "~0.3.5",
-    "underscore": "~1.4.4",
     "q": "~1.1.1"
   }
 }

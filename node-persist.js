@@ -7,41 +7,35 @@ var fs     = require('fs'),
     path   = require('path'),
     mkdirp = require("mkdirp"),
     Q      = require('q'),
-    _      = require("underscore");
-
-var options = {};
-var defaults = {
-    dir: 'persist',
-    stringify: JSON.stringify,
-    parse: JSON.parse,
-    encoding: 'utf8',
-    logging: false,
-    continuous: true,
-    interval: false,
-    ttl: false
-};
-
-var defaultTTL = 7 * 24 * 60 * 60 * 1000 /* ttl is truthy but not a number ? 1 week default */;
-
-var data = {};
-var changes = {};
-
-var log = function() {
-    if (options.logging) {
-        console.log.apply(console, arguments);
-    }
-};
-
-var isNumber = function(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
-};
-
-var dir = __dirname;
-
-var noop = function(err) {
-    if (err) throw err;
-};
-
+    options = {},
+    defaults = {
+        dir: 'persist',
+        stringify: JSON.stringify,
+        parse: JSON.parse,
+        encoding: 'utf8',
+        logging: false,
+        continuous: true,
+        interval: false,
+        ttl: false
+    },
+    defaultTTL = 7 * 24 * 60 * 60 * 1000 /* ttl is truthy but not a number ? 1 week default */,
+    data = {},
+    changes = {},
+    log = function() {
+        if (options.logging) {
+            console.log.apply(console, arguments);
+        }
+    },
+    isNumber = function(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+    },
+    isFunction = function(fn) {
+        return typeof fn === 'function';
+    },
+    dir = __dirname,
+    noop = function(err) {
+        if (err) throw err;
+    },
 // to support backward compatible callbacks,
 // i.e callback(data) vs callback(err, data);
 // replace with noop and fix args order,
@@ -49,7 +43,7 @@ var noop = function(err) {
 // * values()
 // * valuesWithKeyMatch()
 // look for 'todo-breaks-backward'
-var noopWithoutError = function() {};
+    noopWithoutError = function() {};
 
 
 /*
@@ -57,7 +51,7 @@ var noopWithoutError = function() {};
  * An options hash can be optionally passed.
  */
 exports.init = function (userOptions, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var result;
@@ -167,22 +161,6 @@ exports.initSync = function (userOptions) {
         setInterval(exports.persistSync, options.interval);
 };
 
-
-/*
- * This function returns a key with index n in the database, or null if
- *  it is not present.
- * This function runs in 0(k), where k is the number of keys in the
- *  database. You probably shouldn't use it.
- */
-exports.key = function (n) {
-    var keys = Object.keys(data);
-    if (keys.length <= n) {
-        return null;
-    }
-    return keys[n];
-};
-
-
 /*
  * This function returns the value associated with a key in the database,
  *  or undefined if it is not present.
@@ -213,31 +191,86 @@ exports.getItemSync = function (key) {
 
 
 /*
+ * This function returns a key with index n in the database, or null if
+ *  it is not present.
+ * This function runs in 0(k), where k is the number of keys in the
+ *  database. You probably shouldn't use it.
+ */
+exports.key = function (n) {
+    // todo-breaks-backward: remove this function
+    // this is fragile, keys are not guaranteed to be in a any order, so 2 calls using the same index could return a different result
+    // http://stackoverflow.com/a/5525820/493756, see the ECMAScript source in that answer
+    var keys = exports.keys();
+    if (keys.length <= n) {
+        return null;
+    }
+    return keys[n];
+};
+
+/*
+ * This function returns an array of all the keys in the database
+ */
+exports.keys = function () {
+    return Object.keys(data);
+};
+
+
+/*
+ * This function returns the number of keys stored in the database.
+ */
+exports.length = function () {
+    return exports.keys().length;
+};
+
+
+/*
+ * This function iterates over each key/value pair and executes a callback
+ */
+exports.forEach = function(callback) {
+    for (var key in data) {
+        callback(key, data[key]);
+    }
+};
+
+/*
  * This function returns all the values in the database.
  */
+
 exports.values = function(callback) {
-    // todo-breaks-backward: change to ': noopWithoutError;'
-    callback = _.isFunction(callback) ? callback : noopWithoutError;
+    // todo-breaks-backward: remove callback option
+    callback = isFunction(callback) ? callback : noopWithoutError;
 
-    var values = _.values(data);
+    var values = exports.keys().map(function(k) { return data[k]; });
 
-    // todo-breaks-backward: change to 'callback(null, values);'
-    // @akhoury:note: this is synchronous all the time, you don't need a callback, I would get rid of it
+    // todo-breaks-backward: remove callback, no need this is sync
     callback(values);
+
     return values;
 };
 
 
 exports.valuesWithKeyMatch = function(match, callback) {
-    // todo-breaks-backward: change to ': noopWithoutError;'
-    callback = _.isFunction(callback) ? callback : noopWithoutError;
+    // todo-breaks-backward: remove callback option
+    callback = isFunction(callback) ? callback : noopWithoutError;
 
-    var values = _.filter(data, function(value, key){
-        return key.has(match);
+    match = match || /.*/;
+
+    var filter = match instanceof RegExp ?
+        function(key) {
+            return match.test(key);
+        } :
+        function(key) {
+            return match.indexOf(key) !== -1;
+        };
+
+    var values = [];
+    exports.keys().forEach(function(k) {
+        if (filter(k)) {
+            values.push(data[k]);
+        }
     });
 
-    // todo-breaks-backward: change to 'callback(null, values);'
-    // @akhoury:note: this is synchronous all the time, you don't need a callback, I would get rid of it
+    // todo-breaks-backward: remove callback, no need this is sync
     callback(values);
     return values;
 };
@@ -247,7 +280,7 @@ exports.valuesWithKeyMatch = function(match, callback) {
  * This function sets a key to a given value in the database.
  */
 exports.setItem = function (key, value, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var result;
     var logmsg = "set (" + key + ": " + options.stringify(value) + ")";
@@ -316,7 +349,7 @@ exports.setItemSync = function (key, value) {
  *  immediately deletes it from the file system asynchronously.
  */
 exports.removeItem = function (key, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var deferreds = [];
@@ -365,7 +398,7 @@ exports.removeItemSync = function (key) {
  *  deletes all keys from the file system asynchronously.
  */
 exports.clear = function (callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var result;
@@ -401,20 +434,11 @@ exports.clearSync = function () {
     }
 };
 
-
-/*
- * This function returns the number of keys stored in the database.
- */
-exports.length = function () {
-    return Object.keys(data).length;
-};
-
-
 /*
  * This function triggers the database to persist asynchronously.
  */
 exports.persist = function (callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var result;
@@ -456,7 +480,7 @@ exports.persistSync = function () {
  * This function triggers a key within the database to persist asynchronously.
  */
 exports.persistKey = function (key, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var json = options.stringify(data[key]);
     var file = path.join(options.dir, key);
@@ -498,7 +522,7 @@ exports.persistKeySync = function (key) {
  */
 
 var removePersistedKey = function (key, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var result;
@@ -559,7 +583,7 @@ var setOptions = function (userOptions) {
     }
 
     // Check to see if we received an external logging function
-    if (_.isFunction(options.logging)) {
+    if (isFunction(options.logging)) {
         // Overwrite log function with external logging function
         log = options.logging;
         options.logging = true;
@@ -578,7 +602,7 @@ var parseString = function(str){
 
 
 var parseFile = function (key, callback) {
-    callback = _.isFunction(callback) ? callback : noop;
+    callback = isFunction(callback) ? callback : noop;
 
     var deferred = Q.defer();
     var result;
