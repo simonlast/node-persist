@@ -10,8 +10,9 @@
 storage.initSync();
 
 if(!storage.getItem('scores')){
-	storage.setItem('scores',[]);
+	storage.setItemSync('scores',[]);
 }
+
 console.log("scores: " + storage.getItem('scores'));
 
 var app = express();

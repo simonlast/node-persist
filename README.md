@@ -62,9 +62,11 @@ storage.init({
 	logging: false,  // can also be custom logging function
 	continuous: true,
 	interval: false,
-	ttl: false, // [NEW] can be true for 1 week default or a number in milliseconds
+	ttl: false, // TTl* is new,  can be true for 1 week default or a number in milliseconds
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
+\* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion 
+
 ##### Node-persist has 3 ways of running:
 
 1. By default, keys will be persisted after every call of setItem
@@ -75,14 +77,20 @@ storage.init({
 like `init()` but synchronous,
 
 
-#### `getItem(key)` - synchronous, returns "value"
+#### `getItem(key, [callback])` - returns value synchronous* but may linger async call if unless ttl expired,
 This function will get a key from your database in memory, and return its value, or undefined if it is not present.
 
+\* you can always use it in a asynchronous mode, meaning passing a callback (because obviously we cannot return a Promise for this one) - the callback will be executed immediately and synchronously if there is no ttl used 
+
 ```js
-storage.getItem('name');
+storage.getItem('name', function (err, value) {
+// use value here after makign sure expired-ttl key deletion has occured, in that case value === undefined
+}); // value is also returned 
 storage.getItem('obj').key1;
 storage.getItem('arr')[42];
 ```
+#### `getItemSync(key)` - returns value
+The only synchronous part is the deletion of an expired-ttl key, otherwise it behaves just like `getItem`
 
 #### `setItem(key, value, [callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.

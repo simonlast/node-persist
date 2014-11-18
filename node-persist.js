@@ -165,14 +165,20 @@ exports.initSync = function (userOptions) {
  * This function returns the value associated with a key in the database,
  *  or undefined if it is not present.
  */
-exports.getItem = function (key) {
+exports.getItem = function (key, callback) {
+    callback = isFunction(callback) ? callback : noop;
+
     if (!options.ttl) {
+        callback(null, data[key]);
         return data[key];
     }
     var ttl = data[key + '-ttl'];
     if (ttl < (new Date()).getTime()) {
-        exports.removeItem(key);
+        exports.removeItem(key, function() {
+            callback(null, undefined);
+        });
     } else {
+        callback(null, data[key]);
         return data[key];
     }
 };
