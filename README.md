@@ -124,7 +124,7 @@ storage.removeItem('me', /* optional callback */ function(err) {
   // done 
 }).then(onSuccess, onError); // or use the promise
 ```
-#### `removeItemSync(key, [callback])` - synchronous,  throws Error on failure
+#### `removeItemSync(key)` - synchronous,  throws Error on failure
 ```js
 storage.removeItemSync('me');
 ```
