@@ -142,7 +142,7 @@ storage.setItem("superman", {name: "Clark Kent"});
 console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
 #### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so it's getting deprecated
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -162,7 +162,7 @@ console.log(storage.valuesWithKeyMatch('man')); //output: [{name: "Bruce Wayne"}
 console.log(storage.valuesWithKeyMatch(/man/)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
 #### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
-This function is synchronous, it does not need to accept a callback, so it's getting deprecated
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -172,7 +172,7 @@ storage.valuesWithKeyMatch('man', function(values) {
 
 #### `key(n)` - [DEPRECATED] synchronous, returns string
 
-This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.
+This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user. It is getting deprecated because `Object.keys()` does not guarantee the order of the keys, so this functionality is fragile.
 
 #### `keys()` - synchronous, returns array
 
