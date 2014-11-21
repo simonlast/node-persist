@@ -145,9 +145,8 @@ storage.setItem("superman", {name: "Clark Kent"});
 console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
 #### `values([includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so it's getting deprecated. If you are using `options.ttl` the ttl-keys timestamp values will be filtered by default, unless you pass an optional `true` boolean.
-#### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated. If you are using `options.ttl` the ttl-keys timestamp values will be filtered by default, unless you pass an optional `true` boolean.
+
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -171,9 +170,7 @@ console.log(storage.valuesWithKeyMatch(/man/)); //output: [{name: "Bruce Wayne"}
 console.log(storage.valuesWithKeyMatch(/man/, true)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}, 1234567890, 0987654321] // assuming ttl is used, timestamps will return as well
 ```
 #### `valuesWithKeyMatch(match, [includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array 
-This function is synchronous, it does not need to accept a callback, so it's getting deprecated
-#### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
-This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
+This function is synchronous, it does not need to accept a callback, so that signature getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -191,7 +188,7 @@ This function returns a key with index n in the database, or null if it is not p
 
 this function returns an array of all the keys in the database. This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys will be filtered by default, unless you pass a true boolean
 
-#### `length([includeTTLKey])` - synchronous, returns number 
+#### `length([includeTTLKey])` - synchronous, returns number
 
 This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys count will be filtered by default, unless you pass a true boolean
 
