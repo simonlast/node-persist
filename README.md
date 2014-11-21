@@ -126,7 +126,7 @@ storage.removeItem('me', /* optional callback */ function(err) {
   // done 
 }).then(onSuccess, onError); // or use the promise
 ```
-#### `removeItemSync(key, [callback])` - synchronous,  throws Error on failure
+#### `removeItemSync(key)` - synchronous,  throws Error on failure
 ```js
 storage.removeItemSync('me');
 ```
@@ -146,6 +146,8 @@ console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Ke
 ```
 #### `values([includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array
 This function is synchronous, it does not need to accept a callback, so it's getting deprecated. If you are using `options.ttl` the ttl-keys timestamp values will be filtered by default, unless you pass an optional `true` boolean.
+#### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -170,6 +172,8 @@ console.log(storage.valuesWithKeyMatch(/man/, true)); //output: [{name: "Bruce W
 ```
 #### `valuesWithKeyMatch(match, [includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array 
 This function is synchronous, it does not need to accept a callback, so it's getting deprecated
+#### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
@@ -181,7 +185,7 @@ storage.valuesWithKeyMatch('man', true, function(values) {
 
 #### `key(n)` - [DEPRECATED] synchronous, returns string
 
-This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.
+This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user. It is getting deprecated because `Object.keys()` does not guarantee the order of the keys, so this functionality is fragile.
 
 #### `keys([includeTTLKey])` - synchronous, returns array
 
