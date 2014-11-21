@@ -3,10 +3,12 @@
  * http://simonlast.org
  */
 
-var fs     = require('fs'),
+var dir = __dirname,
+    fs     = require('fs'),
     path   = require('path'),
     mkdirp = require("mkdirp"),
     Q      = require('q'),
+    pkg    = require(path.join(__dirname, '/package.json')),
     options = {},
     defaults = {
         dir: 'persist',
@@ -16,7 +18,8 @@ var fs     = require('fs'),
         logging: false,
         continuous: true,
         interval: false,
-        ttl: false
+        ttl: false,
+        ttlKeysPostFix: '-' + pkg.name + '-ttl'
     },
     defaultTTL = 7 * 24 * 60 * 60 * 1000 /* ttl is truthy but not a number ? 1 week default */,
     data = {},
@@ -32,7 +35,6 @@ var fs     = require('fs'),
     isFunction = function(fn) {
         return typeof fn === 'function';
     },
-    dir = __dirname,
     noop = function(err) {
         if (err) throw err;
     },
@@ -162,41 +164,6 @@ exports.initSync = function (userOptions) {
 };
 
 /*
- * This function returns the value associated with a key in the database,
- *  or undefined if it is not present.
- */
-exports.getItem = function (key, callback) {
-    callback = isFunction(callback) ? callback : noop;
-
-    if (!options.ttl) {
-        callback(null, data[key]);
-        return data[key];
-    }
-    var ttl = data[key + '-ttl'];
-    if (ttl < (new Date()).getTime()) {
-        exports.removeItem(key, function() {
-            callback(null, undefined);
-        });
-    } else {
-        callback(null, data[key]);
-        return data[key];
-    }
-};
-
-exports.getItemSync = function (key) {
-    if (!options.ttl) {
-        return data[key];
-    }
-    var ttl = data[key + '-ttl'];
-    if (ttl < (new Date()).getTime()) {
-        exports.removeItemSync(key);
-    } else {
-        return data[key];
-    }
-};
-
-
-/*
  * This function returns a key with index n in the database, or null if
  *  it is not present.
  * This function runs in 0(k), where k is the number of keys in the
@@ -215,38 +182,56 @@ exports.key = function (n) {
 
 /*
  * This function returns an array of all the keys in the database
+ * however, if using options.ttl and not-passing a true boolean, the ttl-keys will be filtered
+ *
  */
-exports.keys = function () {
-    return Object.keys(data);
+exports.keys = function (includeTTLKeys) {
+    var keys = Object.keys(data);
+    if (!options.ttl || includeTTLKeys) {
+        return keys;
+    }
+    return keys.filter(function(key) {
+        return !options.ttlRegExp.test(key);
+    });
 };
 
 
 /*
  * This function returns the number of keys stored in the database.
  */
-exports.length = function () {
-    return exports.keys().length;
+exports.length = function (includeTTLKeys) {
+    return exports.keys(includeTTLKeys).length;
 };
-
 
 /*
  * This function iterates over each key/value pair and executes a callback
  */
-exports.forEach = function(callback) {
-    for (var key in data) {
-        callback(key, data[key]);
+exports.forEach = function(includeTTLKeys, callback) {
+    if (isFunction(includeTTLKeys)) {
+        callback = includeTTLKeys;
+        includeTTLKeys = null;
     }
+    exports.keys(includeTTLKeys).forEach(function(key) {
+        callback(key, data[key]);
+    });
 };
 
 /*
  * This function returns all the values in the database.
  */
 
-exports.values = function(callback) {
+exports.values = function(includeTTLKeys, callback) {
+    if (isFunction(includeTTLKeys)) {
+        callback = includeTTLKeys;
+        includeTTLKeys = null;
+    }
+
     // todo-breaks-backward: remove callback option
     callback = isFunction(callback) ? callback : noopWithoutError;
 
-    var values = exports.keys().map(function(k) { return data[k]; });
+    var values = exports.keys(includeTTLKeys).map(function(k) {
+        return data[k];
+    });
 
     // todo-breaks-backward: remove callback, no need this is sync
     callback(values);
@@ -255,7 +240,12 @@ exports.values = function(callback) {
 };
 
 
-exports.valuesWithKeyMatch = function(match, callback) {
+exports.valuesWithKeyMatch = function(match, includeTTLKeys, callback) {
+    if (isFunction(includeTTLKeys)) {
+        callback = includeTTLKeys;
+        includeTTLKeys = null;
+    }
+
     // todo-breaks-backward: remove callback option
     callback = isFunction(callback) ? callback : noopWithoutError;
 
@@ -270,7 +260,7 @@ exports.valuesWithKeyMatch = function(match, callback) {
         };
 
     var values = [];
-    exports.keys().forEach(function(k) {
+    exports.keys(includeTTLKeys).forEach(function(k) {
         if (filter(k)) {
             values.push(data[k]);
         }
@@ -296,7 +286,7 @@ exports.setItem = function (key, value, callback) {
 
     data[key] = value;
     if (options.ttl) {
-        data[key + '-ttl'] = new Date().getTime() + options.ttl;
+        data[key + options.ttlKeysPostFix] = new Date().getTime() + options.ttl;
     }
 
     result = {key: key, value: value};
@@ -305,7 +295,7 @@ exports.setItem = function (key, value, callback) {
         changes[key] = true;
 
         if (options.ttl) {
-            changes[key + '-ttl'] = true;
+            changes[key + options.ttlKeysPostFix] = true;
         }
 
         log(logmsg);
@@ -316,7 +306,7 @@ exports.setItem = function (key, value, callback) {
     } else if (options.continuous) {
         deferreds.push(exports.persistKey(key));
         if (options.ttl) {
-            deferreds.push(exports.persistKey(key + '-ttl'));
+            deferreds.push(exports.persistKey(key + options.ttlKeysPostFix));
         }
 
         Q.all(deferreds).then(
@@ -344,11 +334,40 @@ exports.setItemSync = function (key, value) {
     data[key] = value;
     exports.persistKeySync(key);
     if (options.ttl) {
-        data[key + '-ttl'] = new Date().getTime() + options.ttl;
-        exports.persistKeySync(key + '-ttl');
+        data[key + options.ttlKeysPostFix] = new Date().getTime() + options.ttl;
+        exports.persistKeySync(key + options.ttlKeysPostFix);
     }
     log("set (" + key + ": " + options.stringify(value) + ")");
 };
+
+/*
+ * This function returns the value associated with a key in the database,
+ *  or undefined if it is not present.
+ */
+exports.getItem = function (key, callback) {
+    callback = isFunction(callback) ? callback : noop;
+    if (isExpired(key)) {
+        if (options.interval || !options.continuous) {
+            callback(null);
+            return;
+        }
+        exports.removeItem(key, function() {
+            callback(null);
+        });
+    } else {
+        callback(null, data[key]);
+        return data[key];
+    }
+};
+
+exports.getItemSync = function (key) {
+    if (isExpired(key)) {
+        exports.removeItemSync(key);
+    } else {
+        return data[key];
+    }
+};
+
 
 /*
  * This function removes key in the database if it is present, and
@@ -362,14 +381,14 @@ exports.removeItem = function (key, callback) {
 
     deferreds.push(removePersistedKey(key));
     if (options.ttl) {
-        deferreds.push(removePersistedKey(key + '-ttl'));
+        deferreds.push(removePersistedKey(key + options.ttlKeysPostFix));
     }
 
     Q.all(deferreds).then(
         function() {
             delete data[key];
             if (options.ttl) {
-                delete data[key + '-ttl'];
+                delete data[key + options.ttlKeysPostFix];
             }
             log("removed" + key);
             callback(null, data);
@@ -389,11 +408,11 @@ exports.removeItem = function (key, callback) {
 exports.removeItemSync = function (key) {
     removePersistedKeySync(key);
     if (options.ttl) {
-        removePersistedKeySync(key + '-ttl');
+        removePersistedKeySync(key + options.ttlKeysPostFix);
     }
     delete data[key];
     if (options.ttl) {
-        delete data[key + '-ttl'];
+        delete data[key + options.ttlKeysPostFix];
     }
     log("removed" + key);
 };
@@ -410,7 +429,7 @@ exports.clear = function (callback) {
     var result;
     var deferreds = [];
 
-    var keys = Object.keys(data);
+    var keys = exports.keys(true);
     for (var i = 0; i < keys.length; i++) {
         deferreds.push(removePersistedKey(keys[i]));
     }
@@ -434,7 +453,7 @@ exports.clear = function (callback) {
  *  deletes all keys from the file system synchronously.
  */
 exports.clearSync = function () {
-    var keys = Object.keys(data);
+    var keys = exports.keys(true);
     for (var i = 0; i < keys.length; i++) {
         removePersistedKeySync(keys[i]);
     }
@@ -460,6 +479,7 @@ exports.persist = function (callback) {
         function(result) {
             deferred.resolve(result);
             callback(null, result);
+            log('persist done');
         },
         function(err) {
             deferred.reject(result);
@@ -479,6 +499,7 @@ exports.persistSync = function () {
             exports.persistKeySync(key);
         }
     }
+    log('persistSync done');
 };
 
 
@@ -571,7 +592,7 @@ var setOptions = function (userOptions) {
         options = defaults;
     } else {
         for (var key in defaults) {
-            if (userOptions[key]) {
+            if (userOptions[key] != null) { // not null and not undefined
                 options[key] = userOptions[key];
             } else {
                 options[key] = defaults[key];
@@ -587,6 +608,8 @@ var setOptions = function (userOptions) {
 
         options.ttl = options.ttl ? isNumber(options.ttl) && options.ttl > 0 ? options.ttl : defaultTTL : false;
     }
+
+    options.ttlRegExp = new RegExp(escapeRegExp(options.ttlKeysPostFix) + '$');
 
     // Check to see if we received an external logging function
     if (isFunction(options.logging)) {
@@ -631,4 +654,13 @@ var parseFile = function (key, callback) {
     });
 
     return deferred.promise;
+};
+
+var isExpired = function (key) {
+    if (!options.ttl) return false;
+    return data[key + options.ttlKeysPostFix] < (new Date()).getTime();
+};
+
+var escapeRegExp = function(str) {
+    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 };

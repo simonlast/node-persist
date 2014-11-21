@@ -53,6 +53,7 @@ This function reads what's on disk and loads it into memory, if the storage dir 
 ##### Options
 You can pass `init()` or `initSync()` an options object to customize the behavior of node-persist
 
+These are the defaults
 ```js
 storage.init({
 	dir:'relative/path/to/persist',
@@ -63,9 +64,10 @@ storage.init({
 	continuous: true,
 	interval: false,
 	ttl: false, // TTl* is new,  can be true for 1 week default or a number in milliseconds
+	ttlKeysPostFix: '-node-persist-ttl' // a postfix to all ttl keys
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
-\* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion 
+\* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  
 
 ##### Node-persist has 3 ways of running:
 
@@ -80,7 +82,7 @@ like `init()` but synchronous,
 #### `getItem(key, [callback])` - returns value synchronous* but may linger async call if unless ttl expired,
 This function will get a key from your database in memory, and return its value, or undefined if it is not present.
 
-\* you can always use it in a asynchronous mode, meaning passing a callback (because obviously we cannot return a Promise for this one) - the callback will be executed immediately and synchronously if there is no ttl used 
+\* you can always use it in a asynchronous mode, meaning passing a callback (because we cannot return a Promise for this one) - the callback will be executed immediately and synchronously if there is no ttl used. If you are using ttl but you are also using `options.interval` or `options.continous=false` the deletion of the expired keys will wait for either the interval to kick in or if you manually `persist`
 
 ```js
 storage.getItem('name', function (err, value) {
@@ -90,7 +92,7 @@ storage.getItem('obj').key1;
 storage.getItem('arr')[42];
 ```
 #### `getItemSync(key)` - returns value
-The only synchronous part is the deletion of an expired-ttl key, otherwise it behaves just like `getItem`
+The only synchronous part is the deletion of an expired-ttl key, again, if `options.interval` or `options.continous=false` are not used, otherwise it behaves just like `getItem`
 
 #### `setItem(key, value, [callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
@@ -111,7 +113,7 @@ storage.setItem('batman', batman).then(
      // error
   })
 ```
-\* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, so, if you set `options.interval=true` or `options.continuous=false`, your (optional) callback or your returned promise from this function will get called/resolved immediately, even if the value has not been persisted to disk yet, which could be either waiting for the interval to kick in or for your manual call to `persist()`
+\* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, so, if you set `options.interval` or `options.continuous=false`, your (optional) callback or your returned promise from this function will get called/resolved immediately, even if the value has not been persisted to disk yet, which could be either waiting for the interval to kick in or for your manual call to `persist()`
 
 #### `setItemSync(key, value)` - synchronous, throws Error on failure
 If you want to immediately persist to disk, __regardless of the `options.interval` and `options.continuous`__ setting, use this function
@@ -133,24 +135,27 @@ This function removes all keys in the database, and immediately deletes all keys
 #### `clearSync()` - synchronous, throws Error on failure
 like `clear()` but synchronous
 
-#### `values()` -  synchronous, returns array 
-This function returns all of the values in the database in memory
+#### `values([includeTTLKey])` -  synchronous, returns array 
+This function returns all of the values in the database in memory. 
+If you are using `options.ttl` the ttl-keys will be filtered by default, unless you pass a `true` boolean
 
 ```js
 storage.setItem("batman", {name: "Bruce Wayne"});
 storage.setItem("superman", {name: "Clark Kent"});
 console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
-#### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so it's getting deprecated
+#### `values([includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array
+This function is synchronous, it does not need to accept a callback, so it's getting deprecated. If you are using `options.ttl` the ttl-keys timestamp values will be filtered by default, unless you pass an optional `true` boolean.
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
 storage.values(function(values) {
 }));
+storage.values(true, function(values) {
+}));
 ```
 
-#### `valuesWithKeyMatch(match)` -  synchronous, returns array 
+#### `valuesWithKeyMatch(match, [includeTTLKey])` -  synchronous, returns array 
 This function returns all of the values in the database matching a string or RegExp
 
 ```js
@@ -160,13 +165,17 @@ storage.setItem("hulk", {name: "Bruce Banner"});
 console.log(storage.valuesWithKeyMatch('man')); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 // also accepts a Regular Expression
 console.log(storage.valuesWithKeyMatch(/man/)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
+
+console.log(storage.valuesWithKeyMatch(/man/, true)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}, 1234567890, 0987654321] // assuming ttl is used, timestamps will return as well
 ```
-#### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
+#### `valuesWithKeyMatch(match, [includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array 
 This function is synchronous, it does not need to accept a callback, so it's getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
 storage.valuesWithKeyMatch('man', function(values) {
+}));
+storage.valuesWithKeyMatch('man', true, function(values) {
 }));
 ```
 
@@ -174,20 +183,25 @@ storage.valuesWithKeyMatch('man', function(values) {
 
 This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user.
 
-#### `keys()` - synchronous, returns array
+#### `keys([includeTTLKey])` - synchronous, returns array
 
-this function returns an array of all the keys in the database
+this function returns an array of all the keys in the database. This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys will be filtered by default, unless you pass a true boolean
 
-#### `length()` - synchronous, returns number 
+#### `length([includeTTLKey])` - synchronous, returns number 
 
-This function returns the number of keys stored in the database.
+This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys count will be filtered by default, unless you pass a true boolean
 
 
-#### `forEach(callback)` - synchronous, assuming callback is as well.
+#### `forEach([includeTTLKey], callback)` - synchronous, assuming callback is as well.
 
-This function iterates over each key/value pair and executes a callback
+This function iterates over each key/value pair and executes a callback. If you are using options.ttl the ttl-keys will be filtered by default, unless you pass a true boolean
+
 ```javascript
 storage.forEach(function(key, value) {
+	// use key and value
+});
+// to include the ttl stamps, assuming you are using options.ttl
+storage.forEach(true, function(key, value) {
 	// use key and value
 });
 ```
@@ -207,6 +221,9 @@ like `persist()` but synchronous
 ```js
 storage.persistSync();
 ```
+##### note:
+Both `persist()` and `persistSync()` will include the ttl keys in the persistance process, however, the functions `persistKey()` and `persistKeySync()` do not. 
+If you are using `options.ttl`, and you want to persist each key individually, remember to `persistKey(key)` and `persistKey(key + options.ttlKeysPostFix)` as well
 
 #### `persistKey(key, [callback])` - asynchronous, returns Promise 
 This function manually persist a 'key' within the database
