@@ -92,7 +92,7 @@ storage.getItem('obj').key1;
 storage.getItem('arr')[42];
 ```
 #### `getItemSync(key)` - returns value
-The only synchronous part is the deletion of an expired-ttl key, again, if `options.interval` or `options.continous=false` are not used, otherwise it behaves just like `getItem`
+The only synchronous part is the deletion of an expired-ttl key, if `options.ttl` is used, otherwise it behaves just like `getItem`
 
 #### `setItem(key, value, [callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
