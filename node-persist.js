@@ -38,13 +38,15 @@ var dir = __dirname,
     noop = function(err) {
         if (err) throw err;
     },
-// to support backward compatible callbacks,
-// i.e callback(data) vs callback(err, data);
-// replace with noop and fix args order,
-// when ready to break backward compatibily for the following API functions
-// * values()
-// * valuesWithKeyMatch()
-// look for 'todo-breaks-backward'
+    
+    /* 
+     * To support backward compatible callbacks,
+     * i.e callback(data) vs callback(err, data);
+     * replace with noop and fix args order, when ready to break backward compatibily for the following API functions
+     * - values()
+     * - valuesWithKeyMatch()
+     * hint: look for 'todo-breaks-backward' in the source
+     */
     noopWithoutError = function() {};
 
 
