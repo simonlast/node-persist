@@ -15,7 +15,8 @@ var ttl = 3000;
 
 storage.init({
     logging: true,
-    ttl: ttl
+    ttl: ttl,
+    dir: __dirname + '/store'
 }).then(function() {
     if(!storage.getItem('counter')) {
         storage.setItemSync('counter', 0);
@@ -59,9 +60,8 @@ http.createServer(function (req, res) {
             c = 0;
             storage.setItemSync('counter', 0);
         }
-        storage.setItem('counter', c + 1).then(function () {
-            res.end("counter is: " + storage.getItem('counter') + ' (everytime you refresh you reset the ttl timer, but just wait ' + ttl / 1000 + ' seconds, it should reset back to 1)');
-        });
+        storage.setItemSync('counter', c + 1);
+        res.end("counter is: " + storage.getItem('counter') + ' (everytime you refresh you reset the ttl timer, but just wait ' + ttl / 1000 + ' seconds, it should reset back to 1)');
 
     } if (/\/\w+/.test(req.url)) { // secret paths
         var url = req.url.slice(1);

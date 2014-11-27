@@ -63,8 +63,7 @@ storage.init({
 	logging: false,  // can also be custom logging function
 	continuous: true,
 	interval: false,
-	ttl: false, // TTl* is new,  can be true for 1 week default or a number in milliseconds
-	ttlKeysPostFix: '-node-persist-ttl' // a postfix to all ttl keys
+	ttl: false, // TTl* is new  can be true for 1 week default or a number in milliseconds
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
 \* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  
@@ -135,28 +134,25 @@ This function removes all keys in the database, and immediately deletes all keys
 #### `clearSync()` - synchronous, throws Error on failure
 like `clear()` but synchronous
 
-#### `values([includeTTLKey])` -  synchronous, returns array 
+#### `values()` -  synchronous, returns array 
 This function returns all of the values in the database in memory. 
-If you are using `options.ttl` the ttl-keys will be filtered by default, unless you pass a `true` boolean
 
 ```js
 storage.setItem("batman", {name: "Bruce Wayne"});
 storage.setItem("superman", {name: "Clark Kent"});
 console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
-#### `values([includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated. If you are using `options.ttl` the ttl-keys timestamp values will be filtered by default, unless you pass an optional `true` boolean.
+#### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
+This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated.
 
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
 storage.values(function(values) {
 }));
-storage.values(true, function(values) {
-}));
 ```
 
-#### `valuesWithKeyMatch(match, [includeTTLKey])` -  synchronous, returns array 
+#### `valuesWithKeyMatch(match)` -  synchronous, returns array 
 This function returns all of the values in the database matching a string or RegExp
 
 ```js
@@ -166,17 +162,13 @@ storage.setItem("hulk", {name: "Bruce Banner"});
 console.log(storage.valuesWithKeyMatch('man')); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 // also accepts a Regular Expression
 console.log(storage.valuesWithKeyMatch(/man/)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
-
-console.log(storage.valuesWithKeyMatch(/man/, true)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}, 1234567890, 0987654321] // assuming ttl is used, timestamps will return as well
 ```
-#### `valuesWithKeyMatch(match, [includeTTLKey, callback])` -  [DEPRECATED] synchronous, but still returns array 
+#### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
 This function is synchronous, it does not need to accept a callback, so that signature getting deprecated
 ```js
 // notice this callback does not accept an error as a 1st argument, to support backward compatibility
 // but will be removed on next minor release
 storage.valuesWithKeyMatch('man', function(values) {
-}));
-storage.valuesWithKeyMatch('man', true, function(values) {
 }));
 ```
 
@@ -184,25 +176,20 @@ storage.valuesWithKeyMatch('man', true, function(values) {
 
 This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user. It is getting deprecated because `Object.keys()` does not guarantee the order of the keys, so this functionality is fragile.
 
-#### `keys([includeTTLKey])` - synchronous, returns array
+#### `keys()` - synchronous, returns array
 
-this function returns an array of all the keys in the database. This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys will be filtered by default, unless you pass a true boolean
+this function returns an array of all the keys in the database. This function returns the number of keys stored in the database.
 
-#### `length([includeTTLKey])` - synchronous, returns number
+#### `length()` - synchronous, returns number
 
-This function returns the number of keys stored in the database. If you are using options.ttl the ttl-keys count will be filtered by default, unless you pass a true boolean
+This function returns the number of keys stored in the database.
 
+#### `forEach(callback)` - synchronous, assuming callback is as well.
 
-#### `forEach([includeTTLKey], callback)` - synchronous, assuming callback is as well.
-
-This function iterates over each key/value pair and executes a callback. If you are using options.ttl the ttl-keys will be filtered by default, unless you pass a true boolean
+This function iterates over each key/value pair and executes a callback. 
 
 ```javascript
 storage.forEach(function(key, value) {
-	// use key and value
-});
-// to include the ttl stamps, assuming you are using options.ttl
-storage.forEach(true, function(key, value) {
 	// use key and value
 });
 ```
@@ -223,8 +210,7 @@ like `persist()` but synchronous
 storage.persistSync();
 ```
 ##### note:
-Both `persist()` and `persistSync()` will include the ttl keys in the persistance process, however, the functions `persistKey()` and `persistKeySync()` do not. 
-If you are using `options.ttl`, and you want to persist each key individually, remember to `persistKey(key)` and `persistKey(key + options.ttlKeysPostFix)` as well
+Both `persist()`, `persistSync()`, `persistKey()`, and `persistKeySync()` will automatically persist the ttl keys/values in the persistance process
 
 #### `persistKey(key, [callback])` - asynchronous, returns Promise 
 This function manually persist a 'key' within the database
