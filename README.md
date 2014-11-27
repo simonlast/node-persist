@@ -63,7 +63,7 @@ storage.init({
 	logging: false,  // can also be custom logging function
 	continuous: true,
 	interval: false,
-	ttl: false, // TTl* is new  can be true for 1 week default or a number in milliseconds
+	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
 \* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  
@@ -104,6 +104,8 @@ storage.setItem(42,'the answer to life, the universe, and everything.', function
 
 var batman = storage.getItem('batman');
 batman.sidekick = 'Robin';
+
+// using the promise
 storage.setItem('batman', batman).then(
   function() {
     // success
@@ -115,10 +117,10 @@ storage.setItem('batman', batman).then(
 \* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, so, if you set `options.interval` or `options.continuous=false`, your (optional) callback or your returned promise from this function will get called/resolved immediately, even if the value has not been persisted to disk yet, which could be either waiting for the interval to kick in or for your manual call to `persist()`
 
 #### `setItemSync(key, value)` - synchronous, throws Error on failure
-If you want to immediately persist to disk, __regardless of the `options.interval` and `options.continuous`__ setting, use this function
+If you want to immediately persist to disk, __regardless of the `options.interval` and `options.continuous`__ settings, use this function. 
 
 #### `removeItem(key, [callback])` - asynchronous, returns Promise 
-This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously.
+This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously. If ttl is used, the corrresponding ttl-key is removed as well
 
 ```js
 storage.removeItem('me', /* optional callback */ function(err) {
@@ -126,6 +128,7 @@ storage.removeItem('me', /* optional callback */ function(err) {
 }).then(onSuccess, onError); // or use the promise
 ```
 #### `removeItemSync(key)` - synchronous,  throws Error on failure
+just like removeItem, but synchronous
 ```js
 storage.removeItemSync('me');
 ```
