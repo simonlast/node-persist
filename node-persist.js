@@ -561,7 +561,7 @@ var setOptions = function (userOptions) {
         options = defaults;
     } else {
         for (var key in defaults) {
-            if (userOptions[key] != null) { // not null and not undefined
+            if (userOptions.hasOwnProperty(key)) {
                 options[key] = userOptions[key];
             } else {
                 options[key] = defaults[key];
