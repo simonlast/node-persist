@@ -1,6 +1,6 @@
 {
   "name": "node-persist",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage",
   "main": "node-persist.js",
   "directories": {
@@ -11,19 +11,32 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:neudesic/node-persist.git"
+    "url": "https://github.com/simonlast/node-persist"
   },
   "keywords": [
     "node",
     "persist",
     "storage"
   ],
-  "author": "Ben Monro & Simon Last",
+  "contributors": [
+    {
+      "name": "Simon Last",
+      "email": "hello@simonlast.org",
+      "url": "http://simonlast.org/"
+    },
+    {
+      "name": "Ben Monro",
+      "url": "https://github.com/benmonro"
+    },
+    {
+      "name": "Aziz Khoury",
+      "url": "https://github.com/akhoury"
+    }
+  ],
   "license": "BSD",
   "readmeFilename": "README.md",
   "dependencies": {
     "mkdirp": "~0.3.5",
-    "underscore": "~1.4.4",
-    "sugar": "~1.3.8"
+    "q": "~1.1.1"
   }
 }
