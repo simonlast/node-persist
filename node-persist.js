@@ -535,7 +535,7 @@ var removePersistedKey = function (key, callback) {
         } else {
             result = {key: key, removed: false, exists: false};
             deferred.resolve(result);
-            callback(err, result);
+            callback(null, result);
         }
     });
 
