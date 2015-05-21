@@ -235,7 +235,9 @@ exports.setItem = function (key, value, callback) {
         log(logmsg);
         callback(null, result);
         result.queued = true;
-        return Q.defer().resolve(result).promise;
+        var defer = Q.defer();
+        defer.resolve(result);
+        return defer.promise;
 
     } else if (options.continuous) {
         deferreds.push(exports.persistKey(key));
