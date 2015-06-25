@@ -679,7 +679,7 @@ var parseDirSync = function(dir, hash) {
         var arr = fs.readdirSync(dir);
         for (var i = 0; i < arr.length; i++) {
             var curr = arr[i];
-            if (curr[0] !== '.') {
+            if (arr[i] && curr[0] !== '.') {
                 var json = fs.readFileSync(path.join(dir, curr), options.encoding);
                 hash[curr] = parseString(json);
             }
