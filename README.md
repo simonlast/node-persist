@@ -231,4 +231,20 @@ storage.setItem('name','myname');
 storage.persistKeySync('name');
 ```
 
+### Factory method
+
+#### `create(options)` - synchronous, static method 
+
+If you choose to create multiple instances of storage, you can. Just avoid using the same `dir` for the storage location.
+__You still have to call `init` or `initSync` after `create`__ - you can pass your configs to either `create` or `init/Sync`
+
+The reason we don't call `init` in the constructor (or when you `create`) because we can only do so for the `initSync` version, the async `init` returns a promise, and in order to maintain that API, we cannot return the promise in the constructor, so `init` must be called on the instance of new LocalStorage();
+
+```javascript
+var storage = require('node-persist');
+var myStorage = storage.create({dir: 'myDir', ttl: 3000});
+myStorage.init().then(function() { // or you can use initSync()
+   // ...
+});
+```
 ##### [Simon Last](http://simonlast.org)
