@@ -704,7 +704,7 @@ LocalStorage.prototype = {
     },
 
     log: function () {
-        this.options.logging && console.log.apply(console, arguments);
+        this.options && this.options.logging && console.log.apply(console, arguments);
     }
 };
 
