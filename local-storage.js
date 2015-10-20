@@ -241,7 +241,7 @@ LocalStorage.prototype = {
         result = {key: key, value: value};
 
         if (options.interval) {
-            changes[key] = true;
+            this.changes[key] = true;
             this.log(logmsg);
             callback(null, result);
             result.queued = true;
