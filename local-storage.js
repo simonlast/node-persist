@@ -117,17 +117,15 @@ LocalStorage.prototype = {
             this._persistInterval = setInterval(this.persist.bind(this), options.interval);
         }
 
-        if (deferreds.length) {
-            Q.all(deferreds).then(
-                function() {
-                    deferred.resolve(result);
-                    callback(null, result);
-                },
-                function(err) {
-                    deferred.reject(err);
-                    callback(null, err);
-                });
-        }
+        Q.all(deferreds).then(
+            function() {
+                deferred.resolve(result);
+                callback(null, result);
+            },
+            function(err) {
+                deferred.reject(err);
+                callback(null, err);
+            });
 
         return deferred.promise;
     },
@@ -569,6 +567,17 @@ LocalStorage.prototype = {
                             deferreds.push(parseFn(curr));
                         }
                     }
+
+                    Q.all(deferreds).then(
+                        function() {
+                            deferred.resolve(result);
+                            callback(null, result);
+                        },
+                        function(err) {
+                            deferred.reject(err);
+                            callback(null, err);
+                        });
+
                 }.bind(this));
             } else {
                 //create the directory
@@ -585,18 +594,6 @@ LocalStorage.prototype = {
                 }.bind(this));
             }
         }.bind(this));
-
-        if (deferreds.length) {
-            Q.all(deferreds).then(
-                function() {
-                    deferred.resolve(result);
-                    callback(null, result);
-                },
-                function(err) {
-                    deferred.reject(err);
-                    callback(null, err);
-                });
-        }
 
         return deferred.promise;
     },
