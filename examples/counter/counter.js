@@ -8,7 +8,7 @@
  * multiple requests.
  */
 
-var storage = require('../../../node-persist');
+var storage = require('../../src/node-persist');
 var http = require('http');
 
 var ttl = 3000;

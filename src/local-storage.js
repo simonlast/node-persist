@@ -188,7 +188,7 @@ LocalStorage.prototype = {
             return this.data[k];
         }.bind(this));
 
-        // todo-breaks-backward: remove callback, no need this is sync
+        // todo-breaks-backward: remove callback, no need, this is sync
         callback(values);
 
         return values;
@@ -322,6 +322,8 @@ LocalStorage.prototype = {
                 deferred.reject(err);
             }
         );
+
+        return deferred.promise;
     },
 
     removeItemSync: function (key) {
