@@ -124,7 +124,7 @@ LocalStorage.prototype = {
             },
             function(err) {
                 deferred.reject(err);
-                callback(null, err);
+                callback(err);
             });
 
         return deferred.promise;
@@ -279,12 +279,13 @@ LocalStorage.prototype = {
     getItem: function (key, callback) {
         callback = isFunction(callback) ? callback : noop;
         if (this.isExpired(key)) {
+            this.log(key + ' has expired');
             if (this.options.interval || !this.options.continuous) {
-                callback(null);
+                callback(null, null);
                 return;
             }
             this.removeItem(key, function() {
-                callback(null);
+                callback(null, null);
             });
         } else {
             callback(null, this.data[key]);
@@ -312,7 +313,7 @@ LocalStorage.prototype = {
             function() {
                 delete this.data[key];
                 delete this.ttls[key];
-                this.log("removed" + key);
+                this.log('removed: ' + key);
                 callback(null, this.data);
                 deferred.resolve(this.data);
             }.bind(this),
@@ -327,7 +328,7 @@ LocalStorage.prototype = {
         this.removePersistedKeySync(key);
         delete this.data[key];
         delete this.ttls[key];
-        this.log("removed" + key);
+        this.log('removed: ' + key);
     },
 
     clear: function (callback) {
@@ -351,7 +352,7 @@ LocalStorage.prototype = {
                 callback(null, result);
             }.bind(this),
             function(err) {
-                deferred.reject(result);
+                deferred.reject(err);
                 callback(err);
             });
 
@@ -479,7 +480,7 @@ LocalStorage.prototype = {
 
                     var fail = function(err) {
                         deferred.reject(err);
-                        callback(err, result);
+                        callback(err);
                     };
 
                     var done = function() {
@@ -575,7 +576,7 @@ LocalStorage.prototype = {
                         },
                         function(err) {
                             deferred.reject(err);
-                            callback(null, err);
+                            callback(err);
                         });
 
                 }.bind(this));
