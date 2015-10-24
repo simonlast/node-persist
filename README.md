@@ -247,4 +247,14 @@ myStorage.init().then(function() { // or you can use initSync()
    // ...
 });
 ```
+
+### Contributing
+
+#### Tests
+
+```
+npm install
+npm test
+```
+
 ##### [Simon Last](http://simonlast.org)
