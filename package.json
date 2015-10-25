@@ -33,7 +33,7 @@
       "url": "https://github.com/akhoury"
     }
   ],
-  "license": "BSD",
+  "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
     "mkdirp": "~0.3.5",
