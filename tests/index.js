@@ -247,12 +247,53 @@ describe("node-persist " + pkg.version + " tests:", function() {
                     done();
                 });
             });
-
         });
     });
 
-    describe("interval, continuous and ttl ", function() {
-        // todo: test interval, continuous and ttl
+    describe("interval and ttl ", function() {
+        this.timeout(5000); // increase the default mocha test timeout.
+
+        it("should respect expired ttl and delete the items", function(done) {
+
+            var storage = nodePersist.create();
+
+            storage.initSync({
+                dir: randDir(),
+                ttl: 1000 // 1 second
+            });
+
+            storage.setItemSync("item1", 1);
+
+            // wait 2 seconds, then try to read the file, should be undefined.
+            setTimeout(function() {
+                var value = storage.getItemSync("item1");
+                assert.equal(value, undefined);
+
+                done();
+            }, 2000);
+        });
+
+        it("don't persist to disk immediately, but rather on a timely interval", function(done) {
+
+            var storage = nodePersist.create();
+
+            storage.initSync({
+                dir: randDir(),
+                interval: 2000 // persist to disk every 2 seconds
+            });
+
+            storage.setItem("item1", 1).then(function() {
+                // check if the item1 file exists immediately, it shouldnt
+                assert.notEqual(true, fs.existsSync(storage.options.dir + "/item1"));
+
+                // 2.5 seconds later, that file should be there.
+                setTimeout(function() {
+                    assert.equal(true, fs.existsSync(storage.options.dir + "/item1"));
+
+                    done();
+                }, 2500)
+            });
+        });
     });
 
     after(function(done) {
