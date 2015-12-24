@@ -51,6 +51,10 @@ var resolveType = function (str) {
     }
 };
 
+
+var host = '127.0.0.1';
+var port = 8080;
+
 http.createServer(function (req, res) {
     res.writeHead(200, {'Content-Type': 'text/plain'});
     if (req.url === '/') {
@@ -78,4 +82,6 @@ http.createServer(function (req, res) {
         res.end();
     }
 
-}).listen(8080, '127.0.0.1');
+}).listen(port, host);
+
+console.log("running on " + host + ":" + port);
