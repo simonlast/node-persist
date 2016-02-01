@@ -66,7 +66,7 @@ storage.init({
 	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
-\* With ttl, it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  
+\* With ttl (time to live), it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  
 
 ##### Node-persist has 3 ways of running:
 
