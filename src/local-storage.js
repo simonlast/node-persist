@@ -619,19 +619,19 @@ LocalStorage.prototype = {
     },
 
     parseDataFile: function(key, callback) {
-        this.parseFile(key, this.options.dir, this.data, callback);
+        return this.parseFile(key, this.options.dir, this.data, callback);
     },
 
     parseDataFileSync: function(key) {
-        this.parseFileSync(key, this.options.dir, this.data);
+        return this.parseFileSync(key, this.options.dir, this.data);
     },
 
     parseTTLFile : function(key, callback) {
-        this.parseFile(key, this.options.ttlDir, this.ttls, callback);
+        return this.parseFile(key, this.options.ttlDir, this.ttls, callback);
     },
 
     parseTTLFileSync: function(key) {
-        this.parseFileSync(key, this.options.ttlDir, this.ttls);
+        return this.parseFileSync(key, this.options.ttlDir, this.ttls);
     },
 
     parseFile: function (key, dir, hash, callback) {
