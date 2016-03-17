@@ -250,12 +250,8 @@ LocalStorage.prototype = {
 
         this.log(logmsg);
 
-        if (options.interval) {
+        if (options.interval || !options.continuous) {
             this.changes[key] = {onSuccess: onSuccess, onError: onError};
-
-        } else if (! options.continuous) {
-            this.changes[key] = {onSuccess: onSuccess, onError: onError};
-
         } else {
             deferreds.push(this.persistKey(key));
 
