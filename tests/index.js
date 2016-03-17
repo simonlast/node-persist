@@ -282,17 +282,19 @@ describe("node-persist " + pkg.version + " tests:", function() {
                 interval: 2000 // persist to disk every 2 seconds
             });
 
+            var startTime = +new Date();
+
             storage.setItem("item1", 1).then(function() {
-                // check if the item1 file exists immediately, it shouldnt
-                assert.notEqual(true, fs.existsSync(storage.options.dir + "/item1"));
-
-                // 2.5 seconds later, that file should be there.
-                setTimeout(function() {
-                    assert.equal(true, fs.existsSync(storage.options.dir + "/item1"));
-
-                    done();
-                }, 2500)
+                // 2 seconds later, that file should be there and that promise should resolve now.
+                var endTime = +new Date();
+                assert.approximately(endTime, startTime, 2500, "within 2.5s or so");
+                assert.equal(true, fs.existsSync(storage.options.dir + "/item1"));
+                done();
             });
+
+            // check if the item1 file exists immediately, it shouldnt
+            assert.notEqual(true, fs.existsSync(storage.options.dir + "/item1"));
+
         });
     });
 

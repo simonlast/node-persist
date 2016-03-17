@@ -236,30 +236,36 @@ LocalStorage.prototype = {
             this.ttls[key] = new Date().getTime() + options.ttl;
         }
 
-        result = {key: key, value: value};
+        result = {key: key, value: value, queued: !!options.interval, manual: !options.interval && !options.continuous};
+
+        var onSuccess = function () {
+            callback(null, result);
+            deferred.resolve(result);
+        };
+
+        var onError = function (err) {
+            callback(err);
+            deferred.reject(err);
+        };
+
+        this.log(logmsg);
 
         if (options.interval) {
-            this.changes[key] = true;
-            this.log(logmsg);
-            callback(null, result);
-            result.queued = true;
-            var defer = Q.defer();
-            defer.resolve(result);
-            return defer.promise;
+            this.changes[key] = {onSuccess: onSuccess, onError: onError};
 
-        } else if (options.continuous) {
+        } else if (! options.continuous) {
+            this.changes[key] = {onSuccess: onSuccess, onError: onError};
+
+        } else {
             deferreds.push(this.persistKey(key));
 
             Q.all(deferreds).then(
                 function(result) {
-                    result = result || {};
-                    this.log(logmsg);
-                    result.queued = false;
                     deferred.resolve(result);
                     callback(null, result);
                 }.bind(this),
                 function(err) {
-                    deferred.resolve(err);
+                    deferred.reject(err);
                     callback(err);
                 });
         }
@@ -423,12 +429,14 @@ LocalStorage.prototype = {
         fs.writeFile(file, json, options.encoding, function(err) {
 
             var fail = function(err) {
+                this.changes[key] && this.changes[key].onError && this.changes[key].onError(err);
                 deferred.reject(err);
                 return callback(err);
-            };
+            }.bind(this);
 
             var done = function() {
-                this.changes[key] = false;
+                this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
+                delete this.changes[key];
                 this.log("wrote: " + key);
                 result = {key: key, data: json, file: file};
                 deferred.resolve(result);
@@ -456,13 +464,19 @@ LocalStorage.prototype = {
 
     persistKeySync: function (key) {
         var options = this.options;
-        fs.writeFileSync(path.join(options.dir, key), options.stringify(this.data[key]));
+        try {
+            fs.writeFileSync(path.join(options.dir, key), options.stringify(this.data[key]));
+            this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
+        } catch (e) {
+            this.changes[key] && this.changes[key].onError && this.changes[key].onError(e);
+            throw e;
+        }
 
         if (options.ttl) {
             fs.writeFileSync(path.join(options.ttlDir, key), options.stringify(this.ttls[key]));
         }
 
-        this.changes[key] = false;
+        delete this.changes[key];
         this.log("wrote: " + key);
     },
 
