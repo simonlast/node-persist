@@ -415,61 +415,76 @@ LocalStorage.prototype = {
     persistKey: function (key, callback) {
         callback = isFunction(callback) ? callback : noop;
 
+        var self = this;
         var options = this.options;
         var json = options.stringify(this.data[key]);
+
         var file = path.join(options.dir, key);
+        var ttlFile;
 
         var deferred = Q.defer();
         var result;
 
-        fs.writeFile(file, json, options.encoding, function(err) {
+        var fail = function(err) {
+            self.changes[key] && self.changes[key].onError && self.changes[key].onError(err);
+            deferred.reject(err);
+            return callback(err);
+        };
 
-            var fail = function(err) {
-                this.changes[key] && this.changes[key].onError && this.changes[key].onError(err);
-                deferred.reject(err);
-                return callback(err);
-            }.bind(this);
+        var done = function() {
+            self.changes[key] && self.changes[key].onSuccess && self.changes[key].onSuccess();
+            delete self.changes[key];
+            self.log("wrote: " + key);
+            result = {key: key, data: json, file: file};
+            deferred.resolve(result);
+            callback(null, result);
+        };
 
-            var done = function() {
-                this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
-                delete this.changes[key];
-                this.log("wrote: " + key);
-                result = {key: key, data: json, file: file};
-                deferred.resolve(result);
-                callback(null, result);
-            }.bind(this);
-
+        mkdirp(path.dirname(file), function(err) {
             if (err) {
                 fail(err);
             }
-            if (options.ttl) {
-                fs.writeFile(path.join(options.ttlDir, key), options.stringify(this.ttls[key]), options.encoding, function() {
-                    if (err) {
-                        fail(err);
-                    } else {
-                        done();
-                    }
-                });
-            } else {
-                done();
-            }
-        }.bind(this));
+            fs.writeFile(file, json, options.encoding, function(err) {
+                if (err) {
+                    fail(err);
+                }
+                if (options.ttl) {
+                    ttlFile = path.join(options.ttlDir, key);
+                    mkdirp(path.dirname(ttlFile), function(err) {
+                        fs.writeFile(ttlFile, options.stringify(self.ttls[key]), options.encoding, function() {
+                            if (err) {
+                                fail(err);
+                            } else {
+                                done();
+                            }
+                        });
+                    });
+                } else {
+                    done();
+                }
+            }.bind(this));
+        });
 
         return deferred.promise;
     },
 
     persistKeySync: function (key) {
         var options = this.options;
+        var file = path.join(options.dir, key);
         try {
-            fs.writeFileSync(path.join(options.dir, key), options.stringify(this.data[key]));
+            mkdirp.sync(path.dirname(file));
+            fs.writeFileSync(file, options.stringify(this.data[key]));
             this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
         } catch (e) {
             this.changes[key] && this.changes[key].onError && this.changes[key].onError(e);
             throw e;
         }
 
+        var ttlFile;
         if (options.ttl) {
-            fs.writeFileSync(path.join(options.ttlDir, key), options.stringify(this.ttls[key]));
+            ttlFile = path.join(options.ttlDir, key);
+            mkdirp.sync(path.dirname(ttlFile));
+            fs.writeFileSync(ttlFile, options.stringify(this.ttls[key]));
         }
 
         delete this.changes[key];
