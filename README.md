@@ -62,7 +62,7 @@ storage.init({
 	encoding: 'utf8',
 	logging: false,  // can also be custom logging function
 	continuous: true,
-	interval: false,
+	interval: false, // milliseconds
 	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
