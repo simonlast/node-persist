@@ -206,7 +206,7 @@ LocalStorage.prototype = {
                 return match.test(key);
             } :
             function(key) {
-                return match.indexOf(key) !== -1;
+                return key.indexOf(match) !== -1;
             };
 
         var values = [];

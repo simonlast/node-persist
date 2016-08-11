@@ -112,7 +112,8 @@ describe("node-persist " + pkg.version + " tests:", function() {
 
             it("should return return all valuesWithKeyMatch()", function(done) {
                 storage.setItemSync("item2", items.item2);
-                assert.deepEqual(storage.valuesWithKeyMatch('item1'), [items.item1]);
+                storage.setItemSync("item11", items.item1);
+                assert.deepEqual(storage.valuesWithKeyMatch('item1'), [items.item1, items.item1]);
                 storage.removeItemSync("item2");
                 done();
             });
@@ -302,4 +303,3 @@ describe("node-persist " + pkg.version + " tests:", function() {
         rmdir(TEST_BASE_DIR, done);
     });
 });
-
