@@ -20,22 +20,36 @@ var storage = require('node-persist');
 
 ## Basic Example
 
+Async example
 ```js
-//you must first call storage.init or storage.initSync
+//you must first call storage.init
+
+//you must first call storage.initSync
+storage.init( /* options ... */ );
+
+//then start using it
+storage.setItem('name','yourname')
+  .then(function() {
+
+    return storage.getItem('name')
+  })
+  .then(function(value) {
+
+    console.log(value); // yourname
+  })
+
+
+```
+
+Sync example
+```
+//you must first call storage.initSync
 storage.initSync();
 
 //then start using it
-storage.setItem('name','yourname');
-console.log(storage.getItem('name'));
+storage.setItemSync('name','yourname');
+console.log(storage.getItemSync('name')); // yourname
 
-var batman = {
-	first: 'Bruce',
-	last: 'Wayne',
-	alias: 'Batman'
-};
-
-storage.setItem('batman',batman);
-console.log(storage.getItem('batman').alias);
 ```
 
 ## Run the examples:
@@ -45,6 +59,20 @@ $ cd examples/examplename
 $ node examplename.js
 $ open up localhost:8080
 ```
+
+## 1.0.0 change logs
+
+Mostly non-backward changes
+
+* `storage.getItem()` now returns a promise
+* `storage.valuesWithKeyMatch()` no longer accepts a callback
+* `storage.values()` no longer accepts a callback
+* `storage.key()` is gone
+* The default `dir` is now `process.cwd() + (dir || '.node-persist/storage')`, unless you use an absolute path
+* added `storage.get()`, alias to `getItem()`
+* added `storage.set()`, alias to `setItem()`
+* added `storage.del()`, `storage.rm()`, as aliases to `removeItem()`
+* Keys, on the file system are base64 encoded with the replacement of the `/`
 
 ## API Documentation
 
@@ -78,20 +106,24 @@ storage.init({
 like `init()` but synchronous,
 
 
-#### `getItem(key, [callback])` - returns value synchronous* but may linger async call if unless ttl expired,
-This function will get a key from your database in memory, and return its value, or undefined if it is not present.
-
-\* you can always use it in a asynchronous mode, meaning passing a callback (because we cannot return a Promise for this one) - the callback will be executed immediately and synchronously if there is no ttl used. If you are using ttl but you are also using `options.interval` or `options.continous=false` the deletion of the expired keys will wait for either the interval to kick in or if you manually `persist`
+#### `getItem(key, [callback])` - returns promise,
+This function will get a key from your database in memory
 
 ```js
+
+// callback
 storage.getItem('name', function (err, value) {
-// use value here after makign sure expired-ttl key deletion has occured, in that case value === undefined
-}); // value is also returned 
-storage.getItem('obj').key1;
-storage.getItem('arr')[42];
+    // use value here after making sure expired-ttl key deletion has occured, in that case value === undefined
+});
+
+// promise
+storage.getItem('obj').then(function(value) {
+
+})
+
 ```
 #### `getItemSync(key)` - returns value
-The only synchronous part is the deletion of an expired-ttl key, if `options.ttl` is used, otherwise it behaves just like `getItem`
+All synchronous part along with the deletion of an expired-ttl key, if `options.ttl` is used
 
 #### `setItem(key, value, [callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
@@ -145,14 +177,10 @@ storage.setItem("batman", {name: "Bruce Wayne"});
 storage.setItem("superman", {name: "Clark Kent"});
 console.log(storage.values()); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
-#### `values([callback])` -  [DEPRECATED] synchronous, but still returns array
-This function is synchronous, it does not need to accept a callback, so that signature is getting deprecated.
+#### `values()` - returns array
 
 ```js
-// notice this callback does not accept an error as a 1st argument, to support backward compatibility
-// but will be removed on next minor release
-storage.values(function(values) {
-}));
+var values = storage.values();
 ```
 
 #### `valuesWithKeyMatch(match)` -  synchronous, returns array 
@@ -166,18 +194,10 @@ console.log(storage.valuesWithKeyMatch('man')); //output: [{name: "Bruce Wayne"}
 // also accepts a Regular Expression
 console.log(storage.valuesWithKeyMatch(/man/)); //output: [{name: "Bruce Wayne"},{name: "Clark Kent"}]
 ```
-#### `valuesWithKeyMatch(match, [callback])` -  [DEPRECATED] synchronous, but still returns array 
-This function is synchronous, it does not need to accept a callback, so that signature getting deprecated
+#### `valuesWithKeyMatch(match)` -  synchronous, returns array
 ```js
-// notice this callback does not accept an error as a 1st argument, to support backward compatibility
-// but will be removed on next minor release
-storage.valuesWithKeyMatch('man', function(values) {
-}));
+var values = storage.valuesWithKeyMatch('man');
 ```
-
-#### `key(n)` - [DEPRECATED] synchronous, returns string
-
-This function returns a key with index n in the database, or null if it is not present. The ordering of keys is not known to the user. It is getting deprecated because `Object.keys()` does not guarantee the order of the keys, so this functionality is fragile.
 
 #### `keys()` - synchronous, returns array
 

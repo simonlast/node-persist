@@ -15,15 +15,26 @@ var ttl = 3000;
 
 storage.init({
     logging: true,
-    ttl: ttl,
-    dir: __dirname + '/store'
+    ttl: ttl
 }).then(function() {
-    if(!storage.getItem('counter')) {
-        storage.setItemSync('counter', 0);
+
+    return storage.getItem('counter');
+}).then(function(counter) {
+
+    if (! counter) {
+        return storage.setItemSync('counter', 0);
     }
-    console.log("counter is: " + storage.getItem('counter'));
-}, function(err) {
+    return counter
+}).then(function() {
+
+    return storage.getItem('counter');
+}).then(function(counter) {
+
+    console.log('counter is ' + counter);
+}).catch(function(err) {
+
     console.error(err);
+    throw err;
 });
 
 
