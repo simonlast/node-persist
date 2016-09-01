@@ -50,7 +50,7 @@ var fs     = require('fs'),
         return atob(string.replace(atobPathSepReplacementRegExp, '/'));
     },
 
-    btoaPathSepRegExp = new RegExp(path.sep, 'g'),
+    btoaPathSepRegExp = new RegExp(path.sep.replace('\\', '\\\\'), 'g'),
 
     atobPathSepReplacement = '__SLASH__',
     atobPathSepReplacementRegExp = new RegExp(atobPathSepReplacement, 'g'),
