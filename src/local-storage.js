@@ -295,7 +295,7 @@ LocalStorage.prototype = {
 
         Q.all(deferreds).then(
             function() {
-                var value = this.data[key].value;
+                var value = this.data[key] && this.data[key].value;
                 delete this.data[key];
                 this.log('removed: ' + key);
                 callback(null, value);
@@ -310,7 +310,7 @@ LocalStorage.prototype = {
     },
 
     removeItemSync: function (key) {
-        var value = this.data[key].value;
+        var value = this.data[key] && this.data[key].value;
         this.removePersistedKeySync(key);
         delete this.data[key];
         this.log('removed: ' + key);
@@ -399,7 +399,7 @@ LocalStorage.prototype = {
         var file = path.join(options.dir, md5(key));
 
         var deferred = Q.defer();
-        var output = {key: key, value: this.data[key].value, file: file, ttl: this.data[key].ttl};
+        var output = {key: key, value: this.data[key] && this.data[key].value, file: file, ttl: this.data[key] && this.data[key].ttl};
 
         fs.writeFile(file, this.stringify(output), options.encoding, function(err) {
             if (err) {
@@ -422,7 +422,7 @@ LocalStorage.prototype = {
         var options = this.options;
         var file = path.join(options.dir, md5(key));
 
-        var output = {key: key, value: this.data[key].value, file: file, ttl: this.data[key].ttl};
+        var output = {key: key, value: this.data[key] && this.data[key].value, file: file, ttl: this.data[key] && this.data[key].ttl};
         try {
             fs.writeFileSync(file, this.stringify(output));
             this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
