@@ -5,6 +5,7 @@
 
 var fs     = require('fs'),
     path   = require('path'),
+    crypto   = require('crypto'),
     mkdirp = require('mkdirp'),
     Q      = require('q'),
     pkg    = require('../package.json'),
@@ -20,7 +21,7 @@ var fs     = require('fs'),
         ttl: false
     },
 
-    defaultTTL = 24 * 60 * 60 * 1000 /* ttl is truthy but not a number ? 24h default */,
+    defaultTTL = 24 * 60 * 60 * 1000 /* if ttl is truthy but it's not a number, use 24h as default */,
 
     isNumber = function(n) {
         return !isNaN(parseFloat(n)) && isFinite(n);
@@ -34,26 +35,9 @@ var fs     = require('fs'),
         if (err) throw err;
     },
 
-    btoa = function (string) {
-        return new Buffer(string.toString(), 'binary').toString('base64');
+    md5 = function (data) {
+        return crypto.createHash('md5').update(data).digest("hex");
     },
-
-    atob = function (string) {
-        return new Buffer(string, 'base64').toString('binary');
-    },
-
-    sanitize = function (string) {
-        return btoa(string).replace(btoaPathSepRegExp, atobPathSepReplacement);
-    },
-
-    unsanitize = function (string) {
-        return atob(string.replace(atobPathSepReplacementRegExp, '/'));
-    },
-
-    btoaPathSepRegExp = new RegExp(path.sep.replace('\\', '\\\\'), 'g'),
-
-    atobPathSepReplacement = '__SLASH__',
-    atobPathSepReplacementRegExp = new RegExp(atobPathSepReplacement, 'g'),
 
 /*
  * To support backward compatible callbacks,
@@ -70,13 +54,12 @@ var LocalStorage = function (userOptions) {
         return new LocalStorage(userOptions);
     }
     this.data = {};
-    this.ttls = {};
     this.changes = {};
     this.setOptions(userOptions);
 
-    // we don't call init in the constructor because we can only so for the initSync
+    // we don't call init in the constructor because we can only do so for the initSync
     // for init async, it returns a promise, and in order to maintain that API, we cannot return the promise in the constructor
-    // so init must be called on the instance of new LocalStorage();
+    // so init must be called, separately, on the instance of new LocalStorage();
 };
 
 LocalStorage.prototype = {
@@ -95,9 +78,7 @@ LocalStorage.prototype = {
                 }
             }
 
-            // dir is not absolute
             options.dir = this.resolveDir(options.dir);
-            options.ttlDir = options.dir + '-ttl';
             options.ttl = options.ttl ? isNumber(options.ttl) && options.ttl > 0 ? options.ttl : defaultTTL : false;
         }
 
@@ -127,12 +108,7 @@ LocalStorage.prototype = {
         var options = this.options;
 
         var result = {dir: options.dir};
-        deferreds.push(this.parseDataDir());
-
-        if (options.ttl) {
-            result.ttlDir = options.ttlDir;
-            deferreds.push(this.parseTTLDir());
-        }
+        deferreds.push(this.parseStorageDir());
 
         //start persisting
         if (options.interval && options.interval > 0) {
@@ -161,14 +137,10 @@ LocalStorage.prototype = {
 
         if (options.logging) {
             this.log("options:");
-            this.log(options.stringify(options));
+            this.log(this.stringify(options));
         }
 
-        this.parseDataDirSync();
-
-        if (options.ttl) {
-            this.parseTTLDirSync();
-        }
+        this.parseStorageDirSync();
 
         //start synchronous persisting,
         if (options.interval && options.interval > 0) {
@@ -186,16 +158,15 @@ LocalStorage.prototype = {
 
     forEach: function(callback) {
         return this.keys().forEach(function(key) {
-            callback(key, this.data[key]);
+            callback(key, this.data[key].value);
         }.bind(this));
     },
 
     values: function() {
         return this.keys().map(function(k) {
-            return this.data[k];
+            return this.data[k].value;
         }.bind(this));
     },
-
 
     valuesWithKeyMatch: function(match) {
         match = match || /.*/;
@@ -211,14 +182,14 @@ LocalStorage.prototype = {
         var values = [];
         this.keys().forEach(function(k) {
             if (filter(k)) {
-                values.push(this.data[k]);
+                values.push(this.data[k].value);
             }
         }.bind(this));
 
         return values;
     },
 
-    set: function () {
+    set: function (key, value, callback) {
         return this.setItem(key, value, callback);
     },
 
@@ -226,18 +197,15 @@ LocalStorage.prototype = {
         callback = isFunction(callback) ? callback : noop;
 
         var options = this.options;
-        var result;
-        var logmsg = "set (" + key + ": " + options.stringify(value) + ")";
+        var logmsg = "set (" + key + ": " + this.stringify(value) + ")";
 
         var deferred = Q.defer();
         var deferreds = [];
 
-        this.data[key] = value;
-        if (options.ttl) {
-            this.ttls[key] = new Date().getTime() + options.ttl;
-        }
+        var ttl = options.ttl ? new Date().getTime() + options.ttl : undefined;
+        this.data[key] = {value: value, ttl: ttl};
 
-        result = {key: key, value: value, queued: !!options.interval, manual: !options.interval && !options.continuous};
+        var result = {key: key, value: value, ttl: ttl, queued: !!options.interval, manual: !options.interval && !options.continuous};
 
         var onSuccess = function () {
             callback(null, result);
@@ -271,12 +239,10 @@ LocalStorage.prototype = {
     },
 
     setItemSync: function (key, value) {
-        this.data[key] = value;
-        if (this.options.ttl) {
-            this.ttls[key] = new Date().getTime() + this.options.ttl;
-        }
+        var ttl = this.options.ttl ? new Date().getTime() + this.options.ttl: undefined;
+        this.data[key] = {key: key, value: value, ttl: ttl};
         this.persistKeySync(key);
-        this.log("set (" + key + ": " + this.options.stringify(value) + ")");
+        this.log("set (" + key + ": " + this.stringify(value) + ")");
     },
 
     get: function (key, callback) {
@@ -297,8 +263,8 @@ LocalStorage.prototype = {
                 return null;
             });
         } else {
-            callback(null, this.data[key]);
-            deferred.resolve(this.data[key]);
+            callback(null, this.data[key] && this.data[key].value);
+            deferred.resolve(this.data[key] && this.data[key].value);
         }
         return deferred.promise;
     },
@@ -307,7 +273,7 @@ LocalStorage.prototype = {
         if (this.isExpired(key)) {
             this.removeItemSync(key);
         } else {
-            return this.data[key];
+            return this.data[key] && this.data[key].value;
         }
     },
 
@@ -329,33 +295,32 @@ LocalStorage.prototype = {
 
         Q.all(deferreds).then(
             function() {
+                var value = this.data[key].value;
                 delete this.data[key];
-                delete this.ttls[key];
                 this.log('removed: ' + key);
-                callback(null, this.data);
-                deferred.resolve(this.data);
+                callback(null, value);
+                deferred.resolve(value);
             }.bind(this),
             function(err) {
                 callback(err);
                 deferred.reject(err);
             }
         );
-
         return deferred.promise;
     },
 
     removeItemSync: function (key) {
+        var value = this.data[key].value;
         this.removePersistedKeySync(key);
         delete this.data[key];
-        delete this.ttls[key];
         this.log('removed: ' + key);
+        return value;
     },
 
     clear: function (callback) {
         callback = isFunction(callback) ? callback : noop;
 
         var deferred = Q.defer();
-        var result;
         var deferreds = [];
 
         var keys = this.keys();
@@ -364,12 +329,11 @@ LocalStorage.prototype = {
         }
 
         Q.all(deferreds).then(
-            function(result) {
+            function() {
                 this.data = {};
-                this.ttls = {};
                 this.changes = {};
-                deferred.resolve(result);
-                callback(null, result);
+                deferred.resolve();
+                callback();
             }.bind(this),
             function(err) {
                 deferred.reject(err);
@@ -385,7 +349,6 @@ LocalStorage.prototype = {
             this.removePersistedKeySync(keys[i]);
         }
         this.data = {};
-        this.ttls = {};
         this.changes = {};
     },
 
@@ -433,53 +396,23 @@ LocalStorage.prototype = {
 
         var self = this;
         var options = this.options;
-        var json = options.stringify(this.data[key]);
-
-        var file = path.join(options.dir, sanitize(key));
-
-        var ttlFile;
+        var file = path.join(options.dir, md5(key));
 
         var deferred = Q.defer();
-        var result;
+        var output = {key: key, value: this.data[key].value, file: file, ttl: this.data[key].ttl};
 
-        var fail = function(err) {
-            self.changes[key] && self.changes[key].onError && self.changes[key].onError(err);
-            deferred.reject(err);
-            return callback(err);
-        };
+        fs.writeFile(file, this.stringify(output), options.encoding, function(err) {
+            if (err) {
+                self.changes[key] && self.changes[key].onError && self.changes[key].onError(err);
+                deferred.reject(err);
+                return callback(err);
+            }
 
-        var done = function() {
             self.changes[key] && self.changes[key].onSuccess && self.changes[key].onSuccess();
             delete self.changes[key];
+            deferred.resolve(output);
+            callback(null, output);
             self.log("wrote: " + key);
-            result = {key: key, data: json, file: file};
-            deferred.resolve(result);
-            callback(null, result);
-        };
-
-        mkdirp(path.dirname(file), function(err) {
-            if (err) {
-                fail(err);
-            }
-            fs.writeFile(file, json, options.encoding, function(err) {
-                if (err) {
-                    fail(err);
-                }
-                if (options.ttl) {
-                    ttlFile = path.join(options.ttlDir, sanitize(key));
-                    mkdirp(path.dirname(ttlFile), function(err) {
-                        fs.writeFile(ttlFile, options.stringify(self.ttls[key]), options.encoding, function() {
-                            if (err) {
-                                fail(err);
-                            } else {
-                                done();
-                            }
-                        });
-                    });
-                } else {
-                    done();
-                }
-            }.bind(this));
         });
 
         return deferred.promise;
@@ -487,23 +420,16 @@ LocalStorage.prototype = {
 
     persistKeySync: function (key) {
         var options = this.options;
-        var file = path.join(options.dir, sanitize(key));
+        var file = path.join(options.dir, md5(key));
+
+        var output = {key: key, value: this.data[key].value, file: file, ttl: this.data[key].ttl};
         try {
-            mkdirp.sync(path.dirname(file));
-            fs.writeFileSync(file, options.stringify(this.data[key]));
+            fs.writeFileSync(file, this.stringify(output));
             this.changes[key] && this.changes[key].onSuccess && this.changes[key].onSuccess();
-        } catch (e) {
-            this.changes[key] && this.changes[key].onError && this.changes[key].onError(e);
-            throw e;
+        } catch (err) {
+            this.changes[key] && this.changes[key].onError && this.changes[key].onError(err);
+            throw err;
         }
-
-        var ttlFile;
-        if (options.ttl) {
-            ttlFile = path.join(options.ttlDir, sanitize(key));
-            mkdirp.sync(path.dirname(ttlFile));
-            fs.writeFileSync(ttlFile, options.stringify(this.ttls[key]));
-        }
-
         delete this.changes[key];
         this.log("wrote: " + key);
     },
@@ -516,46 +442,20 @@ LocalStorage.prototype = {
         var result;
 
         //check to see if key has been persisted
-        var file = path.join(options.dir, sanitize(key));
+        var file = path.join(options.dir, md5(key));
         fs.exists(file, function (exists) {
             if (exists) {
                 fs.unlink(file, function (err) {
-                    result = {key: key, removed: !err, exists: true};
-
-                    var fail = function(err) {
-                        deferred.reject(err);
-                        callback(err);
-                    };
-
-                    var done = function() {
-                        deferred.resolve(result);
-                        callback(null, result);
-                    };
-
+                    result = {key: key, removed: !err, existed: exists};
                     if (err) {
-                        return fail(err);
+                        deferred.reject(err);
+                        return callback(err);
                     }
-
-                    if (options.ttl) {
-                        var ttlFile = path.join(options.ttlDir, sanitize(key));
-                        fs.exists(ttlFile, function (exists) {
-                            if (exists) {
-                                fs.unlink(ttlFile, function (err) {
-                                    if (err) {
-                                        fail(err);
-                                    }
-                                    done();
-                                });
-                            } else {
-                                done();
-                            }
-                        });
-                    } else {
-                        done();
-                    }
+                    deferred.resolve(result);
+                    callback(null, result);
                 });
             } else {
-                result = {key: key, removed: false, exists: false};
+                result = {key: key, removed: false, existed: exists};
                 deferred.resolve(result);
                 callback(null, result);
             }
@@ -564,38 +464,39 @@ LocalStorage.prototype = {
         return deferred.promise;
     },
 
-    parseString: function(str){
+    removePersistedKeySync: function(key) {
+        var options = this.options;
+        var file = path.join(options.dir, md5(key));
+        if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+            return {key: key, removed: true, existed: true};
+        }
+        return {key: key, removed: false, existed: false};
+    },
+    
+    stringify: function (obj) {
+        return this.options.stringify(obj);    
+    },
+
+    parse: function(str){
         try {
             return this.options.parse(str);
         } catch(e) {
-            this.log("parse error: ", this.options.stringify(e));
+            this.log("parse error: ", this.stringify(e));
             return undefined;
         }
     },
 
-    parseTTLDir: function(callback) {
-        return this.parseDir(this.options.ttlDir, this.parseTTLFile.bind(this), callback);
-    },
-
-    parseTTLDirSync: function() {
-        return this.parseDirSync(this.options.ttlDir, this.ttls);
-    },
-
-    parseDataDir: function(callback) {
-        return this.parseDir(this.options.dir, this.parseDataFile.bind(this), callback);
-    },
-
-    parseDataDirSync: function() {
-        return this.parseDirSync(this.options.dir, this.data);
-    },
-
-    parseDir: function(dir, parseFn, callback) {
+    parseStorageDir: function(callback) {
         callback = isFunction(callback) ? callback : noop;
 
         var deferred = Q.defer();
         var deferreds = [];
 
+        var dir = this.options.dir;
+        var self = this;
         var result = {dir: dir};
+
         //check to see if dir is present
         fs.exists(dir, function (exists) {
             if (exists) {
@@ -607,9 +508,9 @@ LocalStorage.prototype = {
                     }
 
                     for (var i in arr) {
-                        var curr = arr[i];
-                        if (curr[0] !== '.') {
-                            deferreds.push(parseFn(unsanitize(curr)));
+                        var currentFile = arr[i];
+                        if (currentFile[0] !== '.') {
+                            deferreds.push(self.parseFile(currentFile));
                         }
                     }
 
@@ -622,8 +523,7 @@ LocalStorage.prototype = {
                             deferred.reject(err);
                             callback(err);
                         });
-
-                }.bind(this));
+                });
             } else {
                 //create the directory
                 mkdirp(dir, function (err) {
@@ -632,27 +532,27 @@ LocalStorage.prototype = {
                         deferred.reject(err);
                         callback(err);
                     } else {
-                        this.log('created ' + dir);
+                        self.log('created ' + dir);
                         deferred.resolve(result);
                         callback(null, result);
                     }
-                }.bind(this));
+                });
             }
-        }.bind(this));
+        });
 
         return deferred.promise;
     },
 
-    parseDirSync: function(dir, hash) {
+    parseStorageDirSync: function() {
+        var dir = this.options.dir;
         var exists = fs.existsSync(dir);
 
         if (exists) { //load data
             var arr = fs.readdirSync(dir);
             for (var i = 0; i < arr.length; i++) {
-                var curr = arr[i];
-                if (arr[i] && curr[0] !== '.') {
-                    var json = fs.readFileSync(path.join(dir, curr), this.options.encoding);
-                    hash[unsanitize(curr)] = this.parseString(json);
+                var currentFile = arr[i];
+                if (arr[i] && currentFile[0] !== '.') {
+                    this.parseFileSync(currentFile);
                 }
             }
         } else { //create the directory
@@ -660,76 +560,42 @@ LocalStorage.prototype = {
         }
     },
 
-    parseDataFile: function(key, callback) {
-        return this.parseFile(key, this.options.dir, this.data, callback);
-    },
-
-    parseDataFileSync: function(key) {
-        return this.parseFileSync(key, this.options.dir, this.data);
-    },
-
-    parseTTLFile : function(key, callback) {
-        return this.parseFile(key, this.options.ttlDir, this.ttls, callback);
-    },
-
-    parseTTLFileSync: function(key) {
-        return this.parseFileSync(key, this.options.ttlDir, this.ttls);
-    },
-
-    parseFile: function (key, dir, hash, callback) {
+    parseFile: function (filename, callback) {
         callback = isFunction(callback) ? callback : noop;
 
         var deferred = Q.defer();
-        var result;
-        var file = path.join(dir, sanitize(key));
+        var self = this;
         var options = this.options;
+        var dir = this.options.dir;
+        var file = path.join(dir, filename);
 
-        fs.readFile(file, options.encoding, function (err, json) {
+        fs.readFile(file, options.encoding, function (err, text) {
             if (err) {
                 deferred.reject(err);
                 return callback(err);
             }
-
-            var value = this.parseString(json);
-
-            hash[key] = value;
-
-            this.log("loaded: " + dir + "/" + key);
-
-            result = {key: key, value: value, file: file};
-            deferred.resolve(result);
-            callback(null, result);
-
-        }.bind(this));
+            var input = self.parse(text);
+            self.data[input.key] = input;
+            self.log("loaded: " + dir + "/" + input.key);
+            deferred.resolve(input);
+            callback(null, input);
+        });
 
         return deferred.promise;
     },
 
-    parseFileSync: function(key, dir, hash) {
-        var file = path.join(dir, sanitize(key));
-        hash[key] = fs.readFileSync(file, this.options.encoding);
-        this.log("loaded: " + dir + "/" + key);
-        return hash[key];
+    parseFileSync: function(filename) {
+        var dir = this.options.dir;
+        var file = path.join(dir, filename);
+        var input = this.parse(fs.readFileSync(file, this.options.encoding));
+        this.data[input.key] = input;
+        this.log("loaded: " + dir + "/" + input.key);
+        return this.data[input.key];
     },
 
     isExpired: function (key) {
         if (!this.options.ttl) return false;
-        return this.ttls[key] < (new Date()).getTime();
-    },
-
-    removePersistedKeySync: function(key) {
-        var options = this.options;
-
-        var file = path.join(options.dir, sanitize(key));
-        if (fs.existsSync(file)) {
-            fs.unlinkSync(file);
-        }
-        if (options.ttl) {
-            var ttlFile = path.join(options.ttlDir, sanitize(key));
-            if (fs.existsSync(ttlFile)) {
-                fs.unlinkSync(ttlFile);
-            }
-        }
+        return this.data[key] && this.data[key].ttl && this.data[key].ttl < (new Date()).getTime();
     },
 
     resolveDir: function(dir) {
@@ -748,8 +614,7 @@ LocalStorage.prototype = {
         this.options && this.options.logging && console.log.apply(console, arguments);
     },
 
-    sanitize: sanitize,
-    unsanitize: unsanitize
+    md5: md5
 };
 
 module.exports = LocalStorage;

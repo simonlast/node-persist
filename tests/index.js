@@ -25,21 +25,55 @@ describe("node-persist " + pkg.version + " tests:", function() {
     });
 
     describe("instances", function() {
-
+        var dir1 = randDir();
         var storage1 = nodePersist.create({
-            dir: randDir()
+            dir: dir1
         });
+        var dir2 = randDir();
         var storage2 = nodePersist.create({
-            dir: randDir()
+            dir: dir2
         });
 
         storage1.initSync();
         storage2.initSync();
 
-        it("should create 2 new different instances of LocalStorage", function() {
+        it("should create 2 new different instances of LocalStorage", function(done) {
             assert.ok(storage1 instanceof LocalStorage);
             assert.ok(storage2 instanceof LocalStorage);
             assert.ok(storage1 != storage2);
+            done();
+        });
+
+        storage1.setItemSync("s1", 1111);
+        storage2.setItemSync("s2", 2222);
+
+        var storage11 = nodePersist.create({
+            dir: dir1
+        });
+        var storage22 = nodePersist.create({
+            dir: dir2
+        });
+
+        it("should use the 2 previous dirs and initSync correctly", function(done) {
+            storage11.initSync();
+            assert.equal(storage11.getItemSync("s1"), 1111, "write/read didn't work");
+
+            storage22.init().then(function() {
+                storage2.getItem("s2").then(function(value) {
+                    assert.equal(value, 2222, "write/read didn't work");
+                    done();
+                })
+            });
+        });
+
+        it("should create the default instance of LocalStorage sync and use it", function(done) {
+            nodePersist.initSync({
+                dir: randDir()
+            });
+            assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
+            nodePersist.setItemSync("item8877", "hello");
+            assert.equal(nodePersist.getItemSync("item8877"), 'hello', "write/read didn't work");
+            done();
         });
 
         it("should create a default instance", function(done) {
@@ -282,12 +316,12 @@ describe("node-persist " + pkg.version + " tests:", function() {
                     // 2 seconds later, that file should be there and that promise should resolve now.
                     var endTime = +new Date();
                     assert.approximately(endTime, startTime, 2500, "within 2.5s or so");
-                    assert.equal(true, fs.existsSync(storage.options.dir + "/" + storage.sanitize("item999")));
+                    assert.equal(true, fs.existsSync(storage.options.dir + "/" + storage.md5("item999")));
                     done();
                 });
 
                 // check if the item1 file exists immediately, it shouldnt
-                assert.notEqual(true, fs.existsSync(storage.options.dir + "/" + storage.sanitize("item999")));
+                assert.notEqual(true, fs.existsSync(storage.options.dir + "/" + storage.md5("item999")));
             });
         });
     });

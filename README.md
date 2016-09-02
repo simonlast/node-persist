@@ -60,6 +60,13 @@ $ node examplename.js
 $ open up localhost:8080
 ```
 
+## 2.0.0 change logs
+
+Non-backward changes
+
+* filenames on the file system are now md5 hashed now and the structure of the saved data has changed to include the ttl in them.
+* no longer need/support a `options.ttlDir`, since the `ttls` are now stored in the same file as each value
+
 ## 1.0.0 change logs
 
 Mostly non-backward changes
