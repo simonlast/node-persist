@@ -302,6 +302,33 @@ describe("node-persist " + pkg.version + " tests:", function() {
             }, 2000);
         });
 
+        it("should respect an expired different ttl per setItem and delete the items", function(done) {
+
+            var storage = nodePersist.create();
+
+            storage.initSync({
+                dir: randDir(),
+                ttl: 1000 // 1 second
+            });
+
+            storage.setItemSync("item1", 1, {ttl: 5000});
+
+            // wait 2 seconds, then try to read the file, should still be there because we asked this one to live for 5 seconds, despite the default 1 second ttl
+            setTimeout(function() {
+                var value = storage.getItemSync("item1");
+                assert.equal(value, 1);
+                done();
+            }, 2000);
+
+            // wait 6 seconds, then try to read the file, should be unfined
+            setTimeout(function() {
+                var value = storage.getItemSync("item1");
+                assert.equal(value, undefined);
+                done();
+            }, 6000);
+
+        });
+
         it("don't persist to disk immediately, but rather on a timely interval", function(done) {
 
             var storage = nodePersist.create();

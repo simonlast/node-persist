@@ -132,12 +132,15 @@ storage.getItem('obj').then(function(value) {
 #### `getItemSync(key)` - returns value
 All synchronous part along with the deletion of an expired-ttl key, if `options.ttl` is used
 
-#### `setItem(key, value, [callback])` - asynchronous*, returns Promise
+#### `setItem(key, value, [options, callback])` - asynchronous*, returns Promise
 This function sets 'key' in your database to 'value'. It also sets a flag, notifying that 'key' has been changed and needs to be persisted in the next sweep. Because the flag must be set for the object to be persisted, it is best to use node-persist in a functional way, as shown below.
 
 ```js
 storage.setItem('fibonacci',[0,1,1,2,3,5,8]);
 storage.setItem(42,'the answer to life, the universe, and everything.', function(err) {
+    // done
+});
+storage.setItem(42,'the answer to life, the universe, and everything.', {ttl: 1000*60 /* 1 min */ }, function(err) {
     // done
 });
 
@@ -148,16 +151,21 @@ batman.sidekick = 'Robin';
 storage.setItem('batman', batman).then(
   function() {
     // success
-  }, 
+  },
   function() {
      // error
   })
 ```
-\* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, so, if you set `options.interval` or `options.continuous=false`, your (optional) callback or your returned promise from this function will get called/resolved immediately, even if the value has not been persisted to disk yet, which could be either waiting for the interval to kick in or for your manual call to `persist()`
+\* The only option available when calling `setItem(key, value, option)` is `{ttl: $milliseconds}`
 
-#### `setItemSync(key, value)` - synchronous, throws Error on failure
-If you want to immediately persist to disk, __regardless of the `options.interval` and `options.continuous`__ settings, use this function. 
+\* `setItem()` is asynchronous, however, depending on your global options, the item might not persist to disk immediately, in the case where you set `options.interval` or `options.continuous=false`, your (optional) callback or your returned promise from this function will still get resolved immediately, even if the value has not been persisted to disk yet, which could be either waiting for the interval to kick in or for your manual call to `persist()` - kind of how the `redis` database works.
 
+#### `setItemSync(key, value, [options])` - synchronous, throws Error on failure
+If you want to immediately persist to disk, __regardless of the `this.options.interval` and `this.options.continuous`__ settings, use this function. The only option available when calling `setItemSync(key, value, option)` is `{ttl: $milliseconds}`
+```javascript
+storage.setItemSync('foo', 'bar');
+storage.setItemSync('hello', 'world', {ttl: 1000 * 60 /* ttl 1 minute */})
+```
 #### `removeItem(key, [callback])` - asynchronous, returns Promise 
 This function removes key in the database if it is present, and immediately deletes it from the file system asynchronously. If ttl is used, the corrresponding ttl-key is removed as well
 

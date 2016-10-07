@@ -189,23 +189,29 @@ LocalStorage.prototype = {
         return values;
     },
 
-    set: function (key, value, callback) {
-        return this.setItem(key, value, callback);
+    set: function (key, value, options, callback) {
+        return this.setItem(key, value, options, callback);
     },
 
-    setItem: function (key, value, callback) {
+    setItem: function (key, value, options, callback) {
+        if (typeof options == 'function') {
+            callback = options;
+            options = null;
+        }
+        options = options || {};
         callback = isFunction(callback) ? callback : noop;
 
-        var options = this.options;
         var logmsg = "set (" + key + ": " + this.stringify(value) + ")";
 
         var deferred = Q.defer();
         var deferreds = [];
 
-        var ttl = options.ttl ? new Date().getTime() + options.ttl : undefined;
+        // ttl is different that the other options because we can pass a different for each setItem, as well as have a default one.
+        var ttl = this.calcTTL(options.ttl);
         this.data[key] = {value: value, ttl: ttl};
 
-        var result = {key: key, value: value, ttl: ttl, queued: !!options.interval, manual: !options.interval && !options.continuous};
+        var instanceOptions = this.options;
+        var result = {key: key, value: value, ttl: ttl, queued: !!instanceOptions.interval, manual: !instanceOptions.interval && !instanceOptions.continuous};
 
         var onSuccess = function () {
             callback(null, result);
@@ -219,7 +225,7 @@ LocalStorage.prototype = {
 
         this.log(logmsg);
 
-        if (options.interval || !options.continuous) {
+        if (instanceOptions.interval || !instanceOptions.continuous) {
             this.changes[key] = {onSuccess: onSuccess, onError: onError};
         } else {
             deferreds.push(this.persistKey(key));
@@ -238,8 +244,9 @@ LocalStorage.prototype = {
         return deferred.promise;
     },
 
-    setItemSync: function (key, value) {
-        var ttl = this.options.ttl ? new Date().getTime() + this.options.ttl: undefined;
+    setItemSync: function (key, value, options) {
+        options = options || {};
+        var ttl = this.calcTTL(options.ttl);
         this.data[key] = {key: key, value: value, ttl: ttl};
         this.persistKeySync(key);
         this.log("set (" + key + ": " + this.stringify(value) + ")");
@@ -593,8 +600,17 @@ LocalStorage.prototype = {
         return this.data[input.key];
     },
 
+    calcTTL: function (ttl) {
+        // only check for undefined, if null was passed in setItem then we probably didn't want to use the this.options.ttl
+        if (typeof ttl == 'undefined') {
+            ttl = this.options.ttl;
+        } else {
+            ttl = ttl ? isNumber(ttl) && ttl > 0 ? ttl : defaultTTL : false;
+        }
+        return ttl ? new Date().getTime() + ttl : undefined;
+    },
+
     isExpired: function (key) {
-        if (!this.options.ttl) return false;
         return this.data[key] && this.data[key].ttl && this.data[key].ttl < (new Date()).getTime();
     },
 
