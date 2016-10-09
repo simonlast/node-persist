@@ -450,10 +450,10 @@ LocalStorage.prototype = {
 
         //check to see if key has been persisted
         var file = path.join(options.dir, md5(key));
-        fs.exists(file, function (exists) {
-            if (exists) {
+        fs.open(file, 'r+', function (err, fd) {
+            if (!err) {
                 fs.unlink(file, function (err) {
-                    result = {key: key, removed: !err, existed: exists};
+                    result = {key: key, removed: !err, existed: true};
                     if (err) {
                         deferred.reject(err);
                         return callback(err);
@@ -462,7 +462,7 @@ LocalStorage.prototype = {
                     callback(null, result);
                 });
             } else {
-                result = {key: key, removed: false, existed: exists};
+                result = {key: key, removed: false, existed: false};
                 deferred.resolve(result);
                 callback(null, result);
             }
@@ -474,7 +474,7 @@ LocalStorage.prototype = {
     removePersistedKeySync: function(key) {
         var options = this.options;
         var file = path.join(options.dir, md5(key));
-        if (fs.existsSync(file)) {
+        if (fs.openSync(file,'r')) {
             fs.unlinkSync(file);
             return {key: key, removed: true, existed: true};
         }
@@ -505,8 +505,8 @@ LocalStorage.prototype = {
         var result = {dir: dir};
 
         //check to see if dir is present
-        fs.exists(dir, function (exists) {
-            if (exists) {
+        fs.open(dir, 'r', function (err, fd) {
+            if (!err) {
                 //load data
                 fs.readdir(dir, function (err, arr) {
                     if (err) {
@@ -552,7 +552,7 @@ LocalStorage.prototype = {
 
     parseStorageDirSync: function() {
         var dir = this.options.dir;
-        var exists = fs.existsSync(dir);
+        var exists = fs.openSync(dir);
 
         if (exists) { //load data
             var arr = fs.readdirSync(dir);
