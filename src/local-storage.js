@@ -18,6 +18,7 @@ var fs     = require('fs'),
         logging: false,
         continuous: true,
         interval: false,
+        expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
         ttl: false
     },
 
@@ -112,8 +113,10 @@ LocalStorage.prototype = {
 
         //start persisting
         if (options.interval && options.interval > 0) {
-            this._persistInterval = setInterval(this.persist.bind(this), options.interval);
+            this.startPersistInterval(this.persist.bind(this));
         }
+
+        this.startExpiredKeysInterval();
 
         Q.all(deferreds).then(
             function() {
@@ -141,6 +144,7 @@ LocalStorage.prototype = {
         }
 
         this.parseStorageDirSync();
+        this.startExpiredKeysInterval();
 
         //start synchronous persisting,
         if (options.interval && options.interval > 0) {
@@ -322,6 +326,31 @@ LocalStorage.prototype = {
         delete this.data[key];
         this.log('removed: ' + key);
         return value;
+    },
+
+    removeExpiredItems: function (callback) {
+        callback = isFunction(callback) ? callback : noop;
+        var deferred = Q.defer();
+        var deferreds = [];
+
+        var keys = this.keys();
+        for (var i = 0; i < keys.length; i++) {
+            if (this.isExpired(keys[i])) {
+                deferreds.push(this.removeItem(keys[i]));
+            }
+        }
+        Q.all(deferreds).then(
+            function() {
+                deferred.resolve();
+                callback();
+            },
+            function(err) {
+                deferred.reject(err);
+                callback(err);
+            });
+
+        return deferred.promise;
+
     },
 
     clear: function (callback) {
@@ -622,8 +651,22 @@ LocalStorage.prototype = {
         return path.join(process.cwd(), dir);
     },
 
-    stopInterval: function () {
+    startPersistInterval: function (persistFunction) {
+        this.stopPersistInterval();
+        this._persistInterval = setInterval(persistFunction || this.persist.bind(this), this.options.interval);
+    },
+
+    stopPersistInterval: function () {
         clearInterval(this._persistInterval);
+    },
+
+    startExpiredKeysInterval: function () {
+        this.stopExpiredKeysInterval();
+        this._expiredKeysInterval = setInterval(this.removeExpiredItems.bind(this), this.options.expiredInterval);
+    },
+
+    stopExpiredKeysInterval: function () {
+        clearInterval(this._expiredKeysInterval);
     },
 
     log: function () {
