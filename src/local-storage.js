@@ -483,13 +483,14 @@ LocalStorage.prototype = {
             if (exists) {
                 fs.unlink(file, function (err) {
                     result = {key: key, removed: !err, existed: exists};
-                    if (err) {
+                    if (err && err.code != 'ENOENT') { /* Only throw the error if the error is something else */
                         deferred.reject(err);
                         return callback(err);
                     }
+                    err && this.log('Failed to remove file:' + file + ' because it doesn\'t exist anymore.');
                     deferred.resolve(result);
                     callback(null, result);
-                });
+                }.bind(this));
             } else {
                 result = {key: key, removed: false, existed: exists};
                 deferred.resolve(result);
@@ -504,7 +505,14 @@ LocalStorage.prototype = {
         var options = this.options;
         var file = path.join(options.dir, md5(key));
         if (fs.existsSync(file)) {
-            fs.unlinkSync(file);
+            try {
+                fs.unlinkSync(file);
+            } catch (err) {
+                if (err.code != 'ENOENT') { /* Only throw the error if the error is something else */
+                    throw err;
+                }
+                this.log('Failed to remove file:' + file + ' because it doesn\'t exist anymore.');
+            }
             return {key: key, removed: true, existed: true};
         }
         return {key: key, removed: false, existed: false};
