@@ -496,7 +496,7 @@ LocalStorage.prototype = {
                 deferred.resolve(result);
                 callback(null, result);
             }
-        });
+        }.bind(this));
 
         return deferred.promise;
     },
