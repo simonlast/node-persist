@@ -116,7 +116,9 @@ LocalStorage.prototype = {
             this.startPersistInterval(this.persist.bind(this));
         }
 
-        this.startExpiredKeysInterval();
+        if (options.expiredInterval) {
+            this.startExpiredKeysInterval();
+        }
 
         Q.all(deferreds).then(
             function() {
@@ -144,8 +146,9 @@ LocalStorage.prototype = {
         }
 
         this.parseStorageDirSync();
-        this.startExpiredKeysInterval();
-
+        if (options.expiredInterval) {
+            this.startExpiredKeysInterval();
+        }
         //start synchronous persisting,
         if (options.interval && options.interval > 0) {
             this._persistInterval = setInterval(this.persistSync.bind(this), options.interval);
