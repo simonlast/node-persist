@@ -24,11 +24,9 @@ Async example
 ```js
 //you must first call storage.init
 
-//you must first call storage.initSync
-storage.init( /* options ... */ );
-
-//then start using it
-storage.setItem('name','yourname')
+storage.init( /* options ... */ ).then(function() {
+  //then start using it
+  storage.setItem('name','yourname')
   .then(function() {
 
     return storage.getItem('name')
@@ -37,7 +35,7 @@ storage.setItem('name','yourname')
 
     console.log(value); // yourname
   })
-
+});
 
 ```
 
