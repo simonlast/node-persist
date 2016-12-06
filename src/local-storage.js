@@ -19,7 +19,8 @@ var fs     = require('fs'),
         continuous: true,
         interval: false,
         expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
-        ttl: false
+        ttl: false,
+        safemode: false /* If parse errors should be ignored or not. */
     },
 
     defaultTTL = 24 * 60 * 60 * 1000 /* if ttl is truthy but it's not a number, use 24h as default */,
@@ -520,9 +521,9 @@ LocalStorage.prototype = {
         }
         return {key: key, removed: false, existed: false};
     },
-    
+
     stringify: function (obj) {
-        return this.options.stringify(obj);    
+        return this.options.stringify(obj);
     },
 
     parse: function(str){
@@ -557,7 +558,16 @@ LocalStorage.prototype = {
                     for (var i in arr) {
                         var currentFile = arr[i];
                         if (currentFile[0] !== '.') {
-                            deferreds.push(self.parseFile(currentFile));
+                            // Parse the file, returns undefined if error.
+                            var file = self.parseFile(currentFile);
+                            // Ignore undefined files, push all others onto the array.
+                            if (file !== undefined) {
+                                deferreds.push(file);
+                            }
+                            // Make sure undefined files are pushed too when safemode is on.
+                            else if (this.options.safemode) {
+                              deferreds.push(file);
+                            }
                         }
                     }
 
@@ -622,9 +632,14 @@ LocalStorage.prototype = {
                 return callback(err);
             }
             var input = self.parse(text);
-            self.data[input.key] = input;
-            self.log("loaded: " + dir + "/" + input.key);
-            deferred.resolve(input);
+            if (input || options.safemode) {
+              self.data[input.key] = input;
+              self.log("loaded: " + dir + "/" + input.key);
+              deferred.resolve(input);
+            } else {
+              deferred.resolve(undefined);
+            }
+
             callback(null, input);
         });
 
