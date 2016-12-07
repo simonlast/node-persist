@@ -19,8 +19,7 @@ var fs     = require('fs'),
         continuous: true,
         interval: false,
         expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
-        ttl: false,
-        safemode: false /* If parse errors should be ignored or not. */
+        ttl: false
     },
 
     defaultTTL = 24 * 60 * 60 * 1000 /* if ttl is truthy but it's not a number, use 24h as default */,
@@ -527,12 +526,7 @@ LocalStorage.prototype = {
     },
 
     parse: function(str){
-        try {
-            return this.options.parse(str);
-        } catch(e) {
-            this.log("parse error: ", this.stringify(e));
-            return undefined;
-        }
+      return this.options.parse(str);
     },
 
     parseStorageDir: function(callback) {
@@ -558,14 +552,15 @@ LocalStorage.prototype = {
                     for (var i in arr) {
                         var currentFile = arr[i];
                         if (currentFile[0] !== '.') {
-                            // Parse the file, returns undefined if error.
-                            var file = self.parseFile(currentFile);
-                            // Ignore undefined files, push all others onto the array.
-                            if (file !== undefined) {
-                                deferreds.push(file);
+                            // Try to parse the file.
+                            try {
+                              var file = self.parseFile(currentFile);
+                            } catch (e) {
+                              var err = true;
+                              this.log('Error while parsing file, ignoring this file: ' + currentFile)
                             }
-                            // Make sure undefined files are pushed too when safemode is on.
-                            else if (this.options.safemode) {
+                            if (!err) {
+                              // If no error exist, push the file onto the array.
                               deferreds.push(file);
                             }
                         }
@@ -609,7 +604,15 @@ LocalStorage.prototype = {
             for (var i = 0; i < arr.length; i++) {
                 var currentFile = arr[i];
                 if (arr[i] && currentFile[0] !== '.') {
-                    this.parseFileSync(currentFile);
+                    // Try to parse the file.
+                    try {
+                      var file = self.parseFileSync(currentFile);
+                    } catch (e) {
+                      // Catch the error but choose not to do anything with it?
+                      this.log('Error while parsing file, ignoring this file: ' + currentFile)
+                      // Ignore it by setting the file to an empty string?
+                      var file = '';
+                    }
                 }
             }
         } else { //create the directory
@@ -632,13 +635,9 @@ LocalStorage.prototype = {
                 return callback(err);
             }
             var input = self.parse(text);
-            if (input || options.safemode) {
-              self.data[input.key] = input;
-              self.log("loaded: " + dir + "/" + input.key);
-              deferred.resolve(input);
-            } else {
-              deferred.resolve(undefined);
-            }
+            self.data[input.key] = input;
+            self.log("loaded: " + dir + "/" + input.key);
+            deferred.resolve(input);
 
             callback(null, input);
         });
