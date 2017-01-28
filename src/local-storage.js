@@ -520,18 +520,13 @@ LocalStorage.prototype = {
         }
         return {key: key, removed: false, existed: false};
     },
-    
+
     stringify: function (obj) {
-        return this.options.stringify(obj);    
+        return this.options.stringify(obj);
     },
 
     parse: function(str){
-        try {
-            return this.options.parse(str);
-        } catch(e) {
-            this.log("parse error: ", this.stringify(e));
-            return undefined;
-        }
+      return this.options.parse(str);
     },
 
     parseStorageDir: function(callback) {
@@ -557,7 +552,17 @@ LocalStorage.prototype = {
                     for (var i in arr) {
                         var currentFile = arr[i];
                         if (currentFile[0] !== '.') {
-                            deferreds.push(self.parseFile(currentFile));
+                            // Try to parse the file.
+                            try {
+                              var file = self.parseFile(currentFile);
+                            } catch (e) {
+                              var err = true;
+                              this.log('Error while parsing file, ignoring this file: ' + currentFile)
+                            }
+                            if (!err) {
+                              // If no error exist, push the file onto the array.
+                              deferreds.push(file);
+                            }
                         }
                     }
 
@@ -599,7 +604,15 @@ LocalStorage.prototype = {
             for (var i = 0; i < arr.length; i++) {
                 var currentFile = arr[i];
                 if (arr[i] && currentFile[0] !== '.') {
-                    this.parseFileSync(currentFile);
+                    // Try to parse the file.
+                    try {
+                      var file = self.parseFileSync(currentFile);
+                    } catch (e) {
+                      // Catch the error but choose not to do anything with it?
+                      this.log('Error while parsing file, ignoring this file: ' + currentFile)
+                      // Ignore it by setting the file to an empty string?
+                      var file = '';
+                    }
                 }
             }
         } else { //create the directory
@@ -625,6 +638,7 @@ LocalStorage.prototype = {
             self.data[input.key] = input;
             self.log("loaded: " + dir + "/" + input.key);
             deferred.resolve(input);
+
             callback(null, input);
         });
 
