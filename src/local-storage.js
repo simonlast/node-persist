@@ -665,6 +665,7 @@ LocalStorage.prototype = {
     startPersistInterval: function (persistFunction) {
         this.stopPersistInterval();
         this._persistInterval = setInterval(persistFunction || this.persist.bind(this), this.options.interval);
+        this._persistInterval.unref();
     },
 
     stopPersistInterval: function () {
@@ -674,6 +675,7 @@ LocalStorage.prototype = {
     startExpiredKeysInterval: function () {
         this.stopExpiredKeysInterval();
         this._expiredKeysInterval = setInterval(this.removeExpiredItems.bind(this), this.options.expiredInterval);
+        this._expiredKeysInterval.unref();
     },
 
     stopExpiredKeysInterval: function () {
