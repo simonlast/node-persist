@@ -267,8 +267,9 @@ LocalStorage.prototype = {
                 return deferred.resolve(null);
             }
             return this.removeItem(key).then(function() {
+                callback(null, null);
                 return null;
-            });
+            }, callback);
         } else {
             callback(null, this.data[key] && this.data[key].value);
             deferred.resolve(this.data[key] && this.data[key].value);
