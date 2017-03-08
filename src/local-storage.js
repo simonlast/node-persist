@@ -19,6 +19,7 @@ var fs     = require('fs'),
         continuous: true,
         interval: false,
         expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
+        forgiveParseErrors: false,
         ttl: false
     },
 
@@ -32,23 +33,15 @@ var fs     = require('fs'),
         return typeof fn === 'function';
     },
 
-    noop = function(err) {
-        if (err) throw err;
-    },
+    noop = function() {},
 
     md5 = function (data) {
         return crypto.createHash('md5').update(data).digest("hex");
     },
 
-/*
- * To support backward compatible callbacks,
- * i.e callback(data) vs callback(err, data);
- * replace with noop and fix args order, when ready to break backward compatibily for the following API functions
- * - values()
- * - valuesWithKeyMatch()
- * hint: look for 'todo-breaks-backward' in the source
- */
-    noopWithoutError = function() {};
+    isValidStorageFileContent = function (content) {
+        return content && content.key;
+    };
 
 var LocalStorage = function (userOptions) {
     if(!(this instanceof LocalStorage)) {
@@ -616,16 +609,27 @@ LocalStorage.prototype = {
         var dir = this.options.dir;
         var file = path.join(dir, filename);
 
-        fs.readFile(file, options.encoding, function (err, text) {
-            if (err) {
-                deferred.reject(err);
-                return callback(err);
-            }
-            var input = self.parse(text);
-            self.data[input.key] = input;
-            self.log("loaded: " + dir + "/" + input.key);
+        var error = function (err) {
+            deferred.reject(err);
+            return callback(err);
+        };
+
+        var done = function (input) {
             deferred.resolve(input);
             callback(null, input);
+        };
+
+        fs.readFile(file, options.encoding, function (err, text) {
+            if (err) {
+                return error(err);
+            }
+            var input = self.parse(text);
+            if (!isValidStorageFileContent(input)) {
+                return options.forgiveParseErrors ? done() : error(new Error('[PARSE-ERROR] ' + file + ' does not look like a valid storage file!'));
+            }
+            self.data[input.key] = input;
+            self.log("loaded: " + dir + "/" + input.key);
+            done(input);
         });
 
         return deferred.promise;
@@ -635,6 +639,12 @@ LocalStorage.prototype = {
         var dir = this.options.dir;
         var file = path.join(dir, filename);
         var input = this.parse(fs.readFileSync(file, this.options.encoding));
+        if (!isValidStorageFileContent(input)) {
+            if (this.options.forgiveParseErrors) {
+                return;
+            }
+            throw Error('[PARSE-ERROR] ' + file + ' does not look like a valid storage file!');
+        }
         this.data[input.key] = input;
         this.log("loaded: " + dir + "/" + input.key);
         return this.data[input.key];

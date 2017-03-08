@@ -64,6 +64,8 @@ Non-backward changes
 
 * filenames on the file system are now md5 hashed now and the structure of the saved data has changed to include the ttl in them.
 * no longer need/support a `options.ttlDir`, since the `ttls` are now stored in the same file as each value
+* added `expiredInterval` option
+* added `forgiveParseErrors` option
 
 ## 1.0.0 change logs
 
@@ -89,14 +91,28 @@ You can pass `init()` or `initSync()` an options object to customize the behavio
 These are the defaults
 ```js
 storage.init({
-	dir:'relative/path/to/persist',
+	dir: 'relative/path/to/persist',
+
 	stringify: JSON.stringify,
+
 	parse: JSON.parse,
+
 	encoding: 'utf8',
+
 	logging: false,  // can also be custom logging function
-	continuous: true,
-	interval: false, // milliseconds
+
+	continuous: true, // continously persist to disk
+
+	interval: false, // milliseconds, persist to disk on an interval
+
 	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS
+
+	expiredInterval: 2 * 60 * 1000, // [NEW] every 2 minutes the process will clean-up the expired cache
+
+    // in some cases, you (or some other service) might add non-valid storage files to your
+    // storage dir, i.e. Google Drive, make this true if you'd like to ignore these files and not throw an error
+    forgiveParseErrors: false // [NEW]
+
 }, /* optional callback */ ).then(onSuccess, onError); // or use the promise
 ```
 \* With ttl (time to live), it is recommended that you use `getItem(key, callback)` or `getItemSync(key)` since, if a `ttl` of a certain key is expired the key-file is immediately deleted from disk, the callback will execute whenever that happends, if there is no ttl used or it has expired yet, the callback will also immediately execute in a synchronous fashion.  

@@ -373,6 +373,81 @@ describe("node-persist " + pkg.version + " tests:", function() {
         });
     });
 
+    describe("Parsing errors", function() {
+        it("should throw an error (sync) because of an invalid file in the storage dir", function (done) {
+            this.timeout(5000);
+            var dir = randDir();
+            var storage = nodePersist.create();
+
+            // make sure the dir is there, and write a random file in there
+            mkdirp.sync(dir);
+            fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
+
+            try {
+                storage.initSync({
+                    dir: dir
+                });
+            } catch (e) {
+                assert.equal(true, /^\[PARSE-ERROR\].*does not look like a valid storage file/.test(e.message));
+                done();
+            }
+        });
+
+        it("should NOT throw an error (sync) because of an invalid file in the storage dir, because forgiveParseErrors=true", function (done) {
+            this.timeout(5000);
+            var dir = randDir();
+            var storage = nodePersist.create();
+
+            // make sure the dir is there, and write a random file in there
+            mkdirp.sync(dir);
+            fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
+
+            storage.initSync({
+                dir: dir,
+                forgiveParseErrors: true
+            });
+            assert.equal(storage.options.dir, dir, "options.dir don't match");
+            done();
+        });
+
+        it("should throw an error (async) because of an invalid file in the storage dir", function (done) {
+            this.timeout(5000);
+            var dir = randDir();
+            var storage = nodePersist.create();
+
+            // make sure the dir is there, and write a random file in there
+            mkdirp.sync(dir);
+            fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
+
+            storage.init({
+                dir: dir
+            }).catch(function(err) {
+                assert.equal(true, /^\[PARSE-ERROR\].*does not look like a valid storage file/.test(err.message));
+                done();
+            });
+        });
+
+        it("should NOT throw an error (async) because of an invalid file in the storage dir, because forgiveParseErrors=true", function (done) {
+            this.timeout(5000);
+            var dir = randDir();
+            var storage = nodePersist.create();
+
+            // make sure the dir is there, and write a random file in there
+            mkdirp.sync(dir);
+            fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
+
+            storage.init({
+                dir: dir,
+                forgiveParseErrors: true
+            }).then(function(options) {
+                assert.equal(options.dir, dir, "options.dir don't match");
+                done();
+            }).catch(function(err) {
+                throw err;
+            });
+        });
+    });
+
     after(function(done) {
         rmdir(TEST_BASE_DIR, done);
     });
