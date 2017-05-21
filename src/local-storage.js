@@ -20,7 +20,9 @@ var fs     = require('fs'),
         interval: false,
         expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
         forgiveParseErrors: false,
-        ttl: false
+        ttl: false,
+        concurrentOpenFiles : -1        /* Maximum number of files to be open concurrently during init. 
+                                           For fixing EMFILEERROR, set this value to appropriate number, e.g., 100 */
     },
 
     defaultTTL = 24 * 60 * 60 * 1000 /* if ttl is truthy but it's not a number, use 24h as default */,
@@ -532,7 +534,7 @@ LocalStorage.prototype = {
         callback = isFunction(callback) ? callback : noop;
 
         var deferred = Q.defer();
-        var deferreds = [];
+        var filenames = [];
 
         var dir = this.options.dir;
         var self = this;
@@ -551,11 +553,11 @@ LocalStorage.prototype = {
                     for (var i in arr) {
                         var currentFile = arr[i];
                         if (currentFile[0] !== '.') {
-                            deferreds.push(self.parseFile(currentFile));
+                            filenames.push(currentFile);
                         }
                     }
 
-                    Q.all(deferreds).then(
+                    self.parseFiles(filenames, 0).then(
                         function() {
                             deferred.resolve(result);
                             callback(null, result);
@@ -599,6 +601,43 @@ LocalStorage.prototype = {
         } else { //create the directory
             mkdirp.sync(dir);
         }
+    },
+
+    parseFiles: function(filenames, startIndex, callback){
+        callback = isFunction(callback) ? callback : noop;
+        var deferred = Q.defer();
+        var currentIndex = startIndex ? startIndex : 0;
+        var doNotLimitOpenFiles = !this.options.concurrentOpenFiles || this.options.concurrentOpenFiles <= 0;
+        var deferredTasks = [];
+        
+        while(currentIndex < filenames.length && (doNotLimitOpenFiles || deferredTasks.length < this.options.concurrentOpenFiles)){
+            deferredTasks.push(self.parseFile(filenames[currentIndex]));
+            currentIndex ++;
+        }
+        
+        var error = function (err) {
+            deferred.reject(err);
+            return callback(err);
+        };
+
+        var done = function () {
+            deferred.resolve();
+            callback(null, input);
+        };
+        
+        Q.all(deferredTasks).then(
+            function() {
+                if(currentIndex < filenames.length){
+                    parseFiles(filenames, currentIndex, callback).then(done, error);
+                }else{
+                    done();
+                }
+            }.bind(this),
+            function(err) {
+                error(err);
+            });
+        
+        return deferred.promise;
     },
 
     parseFile: function (filename, callback) {
