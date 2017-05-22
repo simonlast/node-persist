@@ -557,16 +557,17 @@ LocalStorage.prototype = {
                         }
                     }
 
-                    self.parseFiles(filenames, 0).then(
+                    this.parseFiles(filenames, 0).then(
                         function() {
                             deferred.resolve(result);
                             callback(null, result);
                         },
                         function(err) {
+                            console.log('[INIT ERROR -READING FILES]: ' + err);
                             deferred.reject(err);
                             callback(err);
                         });
-                });
+                }.bind(this));
             } else {
                 //create the directory
                 mkdirp(dir, function (err) {
@@ -581,7 +582,7 @@ LocalStorage.prototype = {
                     }
                 });
             }
-        });
+        }.bind(this));
 
         return deferred.promise;
     },
@@ -603,7 +604,7 @@ LocalStorage.prototype = {
         }
     },
 
-    parseFiles: function(filenames, startIndex, callback){
+    parseFiles : function(filenames, startIndex, callback){
         callback = isFunction(callback) ? callback : noop;
         var deferred = Q.defer();
         var currentIndex = startIndex ? startIndex : 0;
@@ -611,7 +612,7 @@ LocalStorage.prototype = {
         var deferredTasks = [];
         
         while(currentIndex < filenames.length && (doNotLimitOpenFiles || deferredTasks.length < this.options.concurrentOpenFiles)){
-            deferredTasks.push(self.parseFile(filenames[currentIndex]));
+            deferredTasks.push(this.parseFile(filenames[currentIndex]));
             currentIndex ++;
         }
         
@@ -624,11 +625,10 @@ LocalStorage.prototype = {
             deferred.resolve();
             callback(null, input);
         };
-        
         Q.all(deferredTasks).then(
             function() {
                 if(currentIndex < filenames.length){
-                    parseFiles(filenames, currentIndex, callback).then(done, error);
+                    this.parseFiles(filenames, currentIndex, callback).then(done, error);
                 }else{
                     done();
                 }
