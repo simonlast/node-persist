@@ -201,7 +201,6 @@ LocalStorage.prototype = {
         options = options || {};
         callback = isFunction(callback) ? callback : noop;
 
-        var logmsg = "set (" + key + ": " + this.stringify(value) + ")";
 
         var deferred = Q.defer();
         var deferreds = [];
@@ -223,7 +222,9 @@ LocalStorage.prototype = {
             deferred.reject(err);
         };
 
-        this.log(logmsg);
+        if (instanceOptions.logging) {
+            this.log("set (" + key + ": " + this.stringify(value) + ")");
+        }
 
         if (instanceOptions.interval || !instanceOptions.continuous) {
             this.changes[key] = {onSuccess: onSuccess, onError: onError};
@@ -249,7 +250,9 @@ LocalStorage.prototype = {
         var ttl = this.calcTTL(options.ttl);
         this.data[key] = {key: key, value: value, ttl: ttl};
         this.persistKeySync(key);
-        this.log("set (" + key + ": " + this.stringify(value) + ")");
+        if (this.options.logging) {
+            this.log("set (" + key + ": " + this.stringify(value) + ")");
+        }
     },
 
     get: function (key, callback) {
