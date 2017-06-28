@@ -228,7 +228,8 @@ LocalStorage.prototype = {
         }
 
         if (instanceOptions.interval || !instanceOptions.continuous) {
-            this.changes[key] = {onSuccess: onSuccess, onError: onError};
+            this.changes[key] = {onError: onError};
+            process.nextTick(onSuccess);
         } else {
             deferreds.push(this.persistKey(key));
 

@@ -359,12 +359,17 @@ describe("node-persist " + pkg.version + " tests:", function() {
             }).then(function() {
                 var startTime = +new Date();
 
-                storage.setItem("item999", 1).then(function() {
-                    // 2 seconds later, that file should be there and that promise should resolve now.
-                    var endTime = +new Date();
-                    assert.approximately(endTime, startTime, 2500, "within 2.5s or so");
-                    assert.equal(true, fs.existsSync(storage.options.dir + "/" + storage.md5("item999")));
-                    done();
+                storage.setItem("item999", 1).then(function () {
+                    // should resolve immediately but should not create the storate file immediately
+                    assert.notEqual(true, fs.existsSync(storage.options.dir + "/" + storage.md5("item999")));
+
+                    setTimeout(function() {
+                        // 2 seconds later, that file should be there
+                        var endTime = +new Date();
+                        assert.approximately(endTime, startTime, 2500, "within 2.5s or so");
+                        assert.equal(true, fs.existsSync(storage.options.dir + "/" + storage.md5("item999")));
+                        done();
+                    }, 2000);
                 });
 
                 // check if the item1 file exists immediately, it shouldnt
