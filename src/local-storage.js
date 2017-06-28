@@ -7,6 +7,7 @@ var fs     = require('fs'),
     path   = require('path'),
     crypto   = require('crypto'),
     mkdirp = require('mkdirp'),
+    isAbsolute = require('is-absolute'),
     Q      = require('q'),
     pkg    = require('../package.json'),
 
@@ -670,7 +671,7 @@ LocalStorage.prototype = {
 
     resolveDir: function(dir) {
         dir = path.normalize(dir);
-        if (path.isAbsolute(dir)) {
+        if (isAbsolute(dir)) {
             return dir;
         }
         return path.join(process.cwd(), dir);
