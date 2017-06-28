@@ -45,7 +45,7 @@ describe("node-persist " + pkg.version + " tests:", function() {
         });
 
         storage1.setItemSync("s1", 1111);
-        storage2.setItemSync("s2", 2222);
+        storage2.setItemSync("s2", {a: 1});
 
         var storage11 = nodePersist.create({
             dir: dir1
@@ -60,7 +60,7 @@ describe("node-persist " + pkg.version + " tests:", function() {
 
             storage22.init().then(function() {
                 storage2.getItem("s2").then(function(value) {
-                    assert.equal(value, 2222, "write/read didn't work");
+                    assert.deepEqual(value, {a: 1}, "write/read didn't work");
                     done();
                 })
             });

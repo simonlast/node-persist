@@ -159,13 +159,13 @@ LocalStorage.prototype = {
 
     forEach: function(callback) {
         return this.keys().forEach(function(key) {
-            callback(key, this.data[key].value);
+            callback(key, this.getDataValue(key));
         }.bind(this));
     },
 
     values: function() {
-        return this.keys().map(function(k) {
-            return this.data[k].value;
+        return this.keys().map(function(key) {
+            return this.getDataValue(key);
         }.bind(this));
     },
 
@@ -181,9 +181,9 @@ LocalStorage.prototype = {
             };
 
         var values = [];
-        this.keys().forEach(function(k) {
-            if (filter(k)) {
-                values.push(this.data[k].value);
+        this.keys().forEach(function(key) {
+            if (filter(key)) {
+                values.push(this.getDataValue(key));
             }
         }.bind(this));
 
@@ -194,7 +194,7 @@ LocalStorage.prototype = {
         return this.setItem(key, value, options, callback);
     },
 
-    setItem: function (key, value, options, callback) {
+    setItem: function (key, dataValue, options, callback) {
         if (typeof options == 'function') {
             callback = options;
             options = null;
@@ -202,10 +202,10 @@ LocalStorage.prototype = {
         options = options || {};
         callback = isFunction(callback) ? callback : noop;
 
-
         var deferred = Q.defer();
         var deferreds = [];
 
+        var value = this.copy(dataValue);
         // ttl is different that the other options because we can pass a different for each setItem, as well as have a default one.
         var ttl = this.calcTTL(options.ttl);
         this.data[key] = {value: value, ttl: ttl};
@@ -246,9 +246,10 @@ LocalStorage.prototype = {
         return deferred.promise;
     },
 
-    setItemSync: function (key, value, options) {
+    setItemSync: function (key, dataValue, options) {
         options = options || {};
         var ttl = this.calcTTL(options.ttl);
+        var value = this.copy(dataValue);
         this.data[key] = {key: key, value: value, ttl: ttl};
         this.persistKeySync(key);
         if (this.options.logging) {
@@ -275,8 +276,9 @@ LocalStorage.prototype = {
                 return null;
             }, callback);
         } else {
-            callback(null, this.data[key] && this.data[key].value);
-            deferred.resolve(this.data[key] && this.data[key].value);
+            var value = this.getDataValue(key);
+            callback(null, value);
+            deferred.resolve(value);
         }
         return deferred.promise;
     },
@@ -285,8 +287,12 @@ LocalStorage.prototype = {
         if (this.isExpired(key)) {
             this.removeItemSync(key);
         } else {
-            return this.data[key] && this.data[key].value;
+            return this.getDataValue(key);
         }
+    },
+
+    getDataValue: function (key) {
+        return this.data[key] ? this.copy(this.data[key].value) : undefined;
     },
 
     del: function (key, callback) {
@@ -307,7 +313,7 @@ LocalStorage.prototype = {
 
         Q.all(deferreds).then(
             function() {
-                var value = this.data[key] && this.data[key].value;
+                var value = this.getDataValue(key);
                 delete this.data[key];
                 this.log('removed: ' + key);
                 callback(null, value);
@@ -322,7 +328,7 @@ LocalStorage.prototype = {
     },
 
     removeItemSync: function (key) {
-        var value = this.data[key] && this.data[key].value;
+        var value = this.getDataValue(key);
         this.removePersistedKeySync(key);
         delete this.data[key];
         this.log('removed: ' + key);
@@ -530,6 +536,14 @@ LocalStorage.prototype = {
             this.log("parse error: ", this.stringify(e));
             return undefined;
         }
+    },
+
+    copy: function (value) {
+        // don't copy literals since they're passed by value
+        if (typeof value != 'object') {
+            return value;
+        }
+        return this.parse(this.stringify(value));
     },
 
     parseStorageDir: function(callback) {
