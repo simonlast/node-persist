@@ -40,7 +40,7 @@ storage.init( /* options ... */ ).then(function() {
 ```
 
 Sync example
-```
+```js
 //you must first call storage.initSync
 storage.initSync();
 
