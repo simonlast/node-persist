@@ -8,91 +8,82 @@
  * multiple requests.
  */
 
-var storage = require('../../src/node-persist');
-var http = require('http');
+const storage = require('../../src/node-persist');
+const http = require('http');
 
-var ttl = 3000;
+const ttl = 3000;
+const host = '127.0.0.1';
+const port = 8080;
 
-storage.init({
-    logging: true,
-    ttl: ttl
-}).then(function() {
-
-    return storage.getItem('counter');
-}).then(function(counter) {
-
-    if (! counter) {
-        return storage.setItemSync('counter', 0);
-    }
-    return counter
-}).then(function() {
-
-    return storage.getItem('counter');
-}).then(function(counter) {
-
-    console.log('counter is ' + counter);
-}).catch(function(err) {
-
-    console.error(err);
-    throw err;
-});
-
-
-var resolveType = function (str) {
-    var type = typeof str;
-    if (type !== 'string') {
-        return str;
-    } else {
-        var nb = parseFloat(str);
-        if (!isNaN(parseFloat(str)) && isFinite(str))
-            return nb;
-        if (str === 'false')
-            return false;
-        if (str === 'true')
-            return true;
-        if (str === 'undefined')
-            return undefined;
-        if (str === 'null')
-            return null;
-        try {
-            str = JSON.parse(str);
-        } catch (e) {
-        }
-        return str;
-    }
+const resolveType = function (str) {
+	let type = typeof str;
+	if (type !== 'string') {
+		return str;
+	} else {
+		let nb = parseFloat(str);
+		if (!isNaN(parseFloat(str)) && isFinite(str))
+			return nb;
+		if (str === 'false')
+			return false;
+		if (str === 'true')
+			return true;
+		if (str === 'undefined')
+			return undefined;
+		if (str === 'null')
+			return null;
+		try {
+			str = JSON.parse(str);
+		} catch (e) {
+		}
+		return str;
+	}
 };
 
+(async () => {
+	await storage.init({logging: true, ttl: ttl});
 
-var host = '127.0.0.1';
-var port = 8080;
+	let counter = await storage.getItem('counter');
 
-http.createServer(function (req, res) {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    if (req.url === '/') {
-        var c = storage.getItemSync('counter');
-        if (!c) {
-            console.log('counter ttl expired, resetting to 0');
-            c = 0;
-            storage.setItemSync('counter', 0);
-        }
-        storage.setItemSync('counter', c + 1);
-        res.end("counter is: " + storage.getItem('counter') + ' (everytime you refresh you reset the ttl timer, but just wait ' + ttl / 1000 + ' seconds, it should reset back to 1)');
+	if (! counter) {
+		await storage.setItemSync('counter', 0);
+	}
+	counter = await storage.getItem('counter');
+	console.log('counter is ' + counter);
 
-    } if (/\/\w+/.test(req.url)) { // secret paths
-        var url = req.url.slice(1);
-        var parts = url.split('?');
-        var fn = parts[0];
-        var args = (parts[1] || '').split(',').map(function(v) { return resolveType(v); });
-        if (typeof storage[fn] === 'function') {
-            res.end(JSON.stringify(storage[fn].apply(storage, args), undefined, 4));
-        } else {
-            res.end(fn + ' is not a known storage function');
-        }
 
-    } else {
-        res.end();
-    }
+	http.createServer(async function (req, res) {
+		res.writeHead(200, {'Content-Type': 'text/plain'});
+		if (req.url === '/') {
+			let c = await storage.getItemSync('counter');
 
-}).listen(port, host);
+			if (!c) {
+				console.log('counter ttl expired, resetting to 0');
+				c = 0;
+				await storage.setItemSync('counter', 0);
+			}
+			await storage.setItemSync('counter', c + 1);
 
-console.log("running on " + host + ":" + port);
+			res.end("counter is: " + (await storage.getItem('counter')) + ' (every time you refresh you reset the ttl timer, but just wait ' + ttl / 1000 + ' seconds, it should reset back to 1)');
+
+		}
+		if (/\/\w+/.test(req.url)) { // secret paths
+			let url = req.url.slice(1);
+			let parts = url.split('?');
+			let fn = parts[0];
+			let args = (parts[1] || '').split(',').map(v => resolveType(v));
+
+			if (typeof storage[fn] === 'function') {
+				res.end(JSON.stringify(await storage[fn].apply(storage, args), undefined, 4));
+			} else {
+				res.end(fn + ' is not a known storage function');
+			}
+		} else {
+			res.end();
+		}
+
+	}).listen(port, host);
+
+	console.log("running on " + host + ":" + port);
+
+})();
+

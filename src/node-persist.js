@@ -3,11 +3,9 @@
  * http://simonlast.org
  */
 
-var LocalStorage = require('./local-storage');
+const LocalStorage = require('./local-storage');
 
 (function(nodePersist) {
-    var localStorage;
-
     /*
      * This function just creates a localStorage instance, incase you don't plan on using the default one
      * i.e.
@@ -23,18 +21,8 @@ var LocalStorage = require('./local-storage');
      * An options hash can be optionally passed.
      */
     nodePersist.init = function (userOptions, callback) {
-        localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
-        var ret = localStorage.init(callback);
-        mixin(nodePersist, localStorage, {skip: ['init', 'initSync', 'create']});
-        return ret;
-    };
-    /*
-     * This function, (or initSync) must be called before the library can be used.
-     * An options hash can be optionally passed.
-     */
-    nodePersist.initSync = function (userOptions) {
-        localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
-        var ret = localStorage.initSync();
+        const localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
+        let ret = localStorage.init(callback);
         mixin(nodePersist, localStorage, {skip: ['init', 'initSync', 'create']});
         return ret;
     };
@@ -43,9 +31,8 @@ var LocalStorage = require('./local-storage');
     function mixin (target, source, options) {
         options = options || {};
         options.skip = options.skip || [];
-        var key;
-        for (key in source) {
-            if (typeof source[key] === 'function' && key.indexOf('_') !== 0 && options.skip.indexOf(key) == -1) {
+        for (let key in source) {
+            if (typeof source[key] === 'function' && key.indexOf('_') !== 0 && options.skip.indexOf(key) === -1) {
                 target[key] = source[key].bind(source);
             }
         }
