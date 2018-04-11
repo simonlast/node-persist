@@ -116,6 +116,11 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 				assert.equal(value, items.item1);
 			});
 
+			it('should getRawDatum()', async function() {
+				let value = await storage.getRawDatum('item1');
+				assert.equal(value, JSON.stringify({key: 'item1', value: items.item1}));
+			});
+
 			it('should removeItem()', async function() {
 				await storage.removeItem('item1');
 				assert.equal(await storage.getItem('item1'), undefined);

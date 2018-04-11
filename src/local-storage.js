@@ -174,6 +174,10 @@ LocalStorage.prototype = {
 		return this.readFile(this.getDatumPath(key));
 	},
 
+	getRawDatum: async function (key) {
+		return this.readFile(this.getDatumPath(key), {raw: true});
+	},
+
 	getDatumValue: async function (key) {
 		let datum = await this.getDatum(key);
 		return datum && datum.value;
@@ -256,20 +260,20 @@ LocalStorage.prototype = {
 		});
 	},
 
-	readFile: function (file) {
+	readFile: function (file, options = {}) {
 		return new Promise((resolve, reject) => {
 			fs.readFile(file, this.options.encoding, (err, text) => {
 				if (err) {
 					/* Only throw the error if the error is something else other than the file doesn't exist */
 					if (err.code === 'ENOENT') {
 						this.log(`${file} does not exist, returning undefined value`);
-						resolve({});
+						resolve(options.raw ? '{}' : {});
 					} else {
 						return reject(err);
 					}
 				}
-				let input = this.parse(text);
-				if (!isValidStorageFileContent(input)) {
+				let input = options.raw ? text : this.parse(text);
+				if (!options.raw && !isValidStorageFileContent(input)) {
 					return this.options.forgiveParseErrors ? resolve() : reject(new Error(`[node-persist][readFile] ${file} does not look like a valid storage file!`));
 				}
 				resolve(input);
