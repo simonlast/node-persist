@@ -10,7 +10,7 @@ const LocalStorage = require('./local-storage');
      * This function just creates a localStorage instance, incase you don't plan on using the default one
      * i.e.
      * var myStorage = nodePersist.create();
-     * myStorage.init(myOptions);  // you still have to call init or initSync();
+     * myStorage.init(myOptions);  // you still have to call init
      */
     nodePersist.create = function (userOptions) {
         return LocalStorage(userOptions);
@@ -23,7 +23,7 @@ const LocalStorage = require('./local-storage');
     nodePersist.init = function (userOptions, callback) {
         const localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
         let ret = localStorage.init(callback);
-        mixin(nodePersist, localStorage, {skip: ['init', 'initSync', 'create']});
+        mixin(nodePersist, localStorage, {skip: ['init', 'create']});
         return ret;
     };
 

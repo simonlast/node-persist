@@ -45,7 +45,7 @@ const resolveType = function (str) {
 	let counter = await storage.getItem('counter');
 
 	if (! counter) {
-		await storage.setItemSync('counter', 0);
+		await storage.setItem('counter', 0);
 	}
 	counter = await storage.getItem('counter');
 	console.log('counter is ' + counter);
@@ -54,14 +54,14 @@ const resolveType = function (str) {
 	http.createServer(async function (req, res) {
 		res.writeHead(200, {'Content-Type': 'text/plain'});
 		if (req.url === '/') {
-			let c = await storage.getItemSync('counter');
+			let c = await storage.getItem('counter');
 
 			if (!c) {
 				console.log('counter ttl expired, resetting to 0');
 				c = 0;
-				await storage.setItemSync('counter', 0);
+				await storage.setItem('counter', 0);
 			}
-			await storage.setItemSync('counter', c + 1);
+			await storage.setItem('counter', c + 1);
 
 			res.end("counter is: " + (await storage.getItem('counter')) + ' (every time you refresh you reset the ttl timer, but just wait ' + ttl / 1000 + ' seconds, it should reset back to 1)');
 

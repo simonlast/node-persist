@@ -72,7 +72,7 @@ Mostly non-backward changes
 #### `async init(options, [callback])`
 if the storage dir is new, it will create it
 ##### Options
-You can pass `init()` or `initSync()` an options object to customize the behavior of node-persist
+You can pass `init()` an options object to customize the behavior of node-persist
 
 These are the defaults
 ```js
