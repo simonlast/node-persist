@@ -6,7 +6,7 @@ Node-persist doesn't use a database. Instead, JSON documents are stored in the f
 
 This is still a work in progress. Send pull requests please.
 ## Note
-If you're looking for the version that supports both `synchronous` and `asynchronous` use `node-persist@2.10`
+If you're looking for the version that supports both `synchronous` and `asynchronous` use `node-persist@2.1.0`
 
 ## Install
 
