@@ -131,8 +131,8 @@ LocalStorage.prototype = {
 
 	forEach: async function(callback) {
 		let data = await this.data();
-		for (let i in data) {
-			await callback(data[i]);
+		for (let d of data) {
+			await callback(d);
 		}
 	},
 
@@ -201,15 +201,15 @@ LocalStorage.prototype = {
 
 	removeExpiredItems: async function () {
 		let keys = await this.keys(isExpired);
-		for (let i in keys) {
-			await this.removeItem(keys[i]);
+		for (let key of keys) {
+			await this.removeItem(key);
 		}
 	},
 
 	clear: async function () {
 		let data = await this.data();
-		for (let i in data) {
-			await this.removeItem(data[i].key);
+		for (let d of data) {
+			await this.removeItem(d.key);
 		}
 	},
 
@@ -245,8 +245,7 @@ LocalStorage.prototype = {
 							return reject(err);
 						}
 						let data = [];
-						for (let i in arr) {
-							let currentFile = arr[i];
+						for (let currentFile of arr) {
 							if (currentFile[0] !== '.') {
 								data.push(await this.readFile(path.join(this.options.dir, currentFile)));
 							}
