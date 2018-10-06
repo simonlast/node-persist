@@ -245,10 +245,14 @@ LocalStorage.prototype = {
 							return reject(err);
 						}
 						let data = [];
-						for (let currentFile of arr) {
-							if (currentFile[0] !== '.') {
-								data.push(await this.readFile(path.join(this.options.dir, currentFile)));
+						try {
+							for (let currentFile of arr) {
+								if (currentFile[0] !== '.') {
+									data.push(await this.readFile(path.join(this.options.dir, currentFile)));
+								}
 							}
+						} catch (err) {
+							reject(err)
 						}
 						resolve(data);
 					});
