@@ -138,7 +138,7 @@ LocalStorage.prototype = {
 
 	valuesWithKeyMatch: async function(match) {
 		match = match || /.*/;
-		let filter = match instanceof RegExp ? key => match.test(key) : key => key.indexOf(match) !== -1;
+		let filter = match instanceof RegExp ? datum => match.test(datum.key) : datum => datum.key.indexOf(match) !== -1;
 		return this.values(filter);
 	},
 
