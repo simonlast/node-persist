@@ -121,6 +121,17 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 				assert.equal(value, JSON.stringify({key: 'item1', value: items.item1}));
 			});
 
+			it('should valuesWithKeyMatch(String)', async function() {
+				await storage.setItem('item2', items.item2);
+				let value = await storage.valuesWithKeyMatch('item');
+				assert.equal(value.length, 2);
+			});
+
+			it('should valuesWithKeyMatch(RegEx)', async function() {
+				let value = await storage.valuesWithKeyMatch(/item/);
+				assert.equal(value.length, 2);
+			});
+
 			it('should removeItem()', async function() {
 				await storage.removeItem('item1');
 				assert.equal(await storage.getItem('item1'), undefined);
