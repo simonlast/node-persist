@@ -7,7 +7,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const mkdirp = require('mkdirp');
-const isAbsolute = require('is-absolute');
 const pkg = require('../package.json');
 
 const defaults = {
@@ -49,7 +48,7 @@ const isNotExpired = function (datum) {
 
 const resolveDir = function(dir) {
 	dir = path.normalize(dir);
-	if (isAbsolute(dir)) {
+	if (path.isAbsolute(dir)) {
 		return dir;
 	}
 	return path.join(process.cwd(), dir);
