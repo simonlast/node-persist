@@ -30,6 +30,18 @@ const isNumber = function(n) {
 	return !isNaN(parseFloat(n)) && isFinite(n);
 };
 
+const isDate = function(d) {
+	return Object.prototype.toString.call(d) === '[object Date]';
+};
+
+const isValidDate = function(d) {
+	return isDate(d) && !isNaN(d);
+};
+
+const isFutureDate = function(d) {
+	return isValidDate(d) && d.getTime() > (+new Date);
+};
+
 const md5 = function (key) {
 	return crypto.createHash('md5').update(key).digest('hex');
 };
@@ -153,6 +165,30 @@ LocalStorage.prototype = {
 		}
 		let datum = {key: key, value: value, ttl: ttl};
 		return this.writeFile(this.getDatumPath(key), datum);
+	},
+
+	update: function (key, value, options = {}) {
+		return this.updateItem(key, value, options);
+	},
+
+	updateItem: async function (key, datumValue, options = {}) {
+		let previousDatum = await this.getDatum(key);
+		if (previousDatum && isNotExpired(previousDatum)) {
+			let newDatumValue = this.copy(datumValue);
+			let ttl;
+			if (options.ttl) {
+				ttl = this.calcTTL(options.ttl);
+			} else {
+				ttl = previousDatum.ttl;
+			}
+			if (this.logging) {
+				this.log(`update ('${key}': '${this.stringify(value)}')`);
+			}
+			let datum = {key: key, value: newDatumValue, ttl: ttl};
+			return this.writeFile(this.getDatumPath(key), datum);
+		} else {
+			return this.setItem(key, datumValue, options);
+		}
 	},
 
 	get: function (key) {
@@ -357,13 +393,28 @@ LocalStorage.prototype = {
 	},
 
 	calcTTL: function (ttl) {
+		let now = new Date();
+		let nowts = now.getTime();
+
 		// only check for undefined, if null was passed in setItem then we probably didn't want to use the this.options.ttl
 		if (typeof ttl === 'undefined') {
 			ttl = this.options.ttl;
 		} else {
-			ttl = ttl ? isNumber(ttl) && ttl > 0 ? ttl : defaultTTL : false;
 		}
-		return ttl ? new Date().getTime() + ttl : undefined;
+
+		if (ttl) {
+			if (isDate(ttl)) {
+				if (!isFutureDate(ttl)) {
+					ttl = defaultTTL;
+				}
+				ttl = ttl.getTime ? ttl.getTime() : ttl;
+			} else {
+				ttl = ttl ? isNumber(ttl) && ttl > 0 ? nowts + ttl : defaultTTL : void 0;
+			}
+			return ttl;
+		} else {
+			return void 0;
+		}
 	}
 };
 

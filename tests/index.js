@@ -95,8 +95,12 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 
 		let items = {
 			'item1': 1,
-			'item2': 2
+			'item2': 2,
+			'item3a': `3a`,
+			'item3b': `3b`,
 		};
+
+		let KEYS = Object.keys(items);
 
 		describe('general items operations', function() {
 			it('should init()', async function() {
@@ -110,6 +114,26 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 				assert.equal(await storage.getItem('item1'), items.item1);
 			});
 
+			it('should setItem() with ttl as a Date Object', async function() {
+				let now = +new Date();
+				let ttl = 10000;
+				let in10sDate = new Date(now + ttl);
+
+				await storage.setItem('item3b', items.item3b, { ttl: in10sDate });
+				let datum = await storage.getDatum('item3b');
+				assert.approximately(datum.ttl, now + ttl, 350);
+			});
+
+			it('should updateItem()', async function() {
+				let ttl = 10000;
+				let now = +new Date();
+				await storage.setItem('item3a', items.item3a, { ttl });
+				await storage.setItem('item3b', items.item3b, { ttl });
+				await storage.updateItem('item3a', items.item3b);
+				let datum = await storage.getDatum('item3a');
+				assert.approximately(datum.ttl, now + ttl, 350);
+				assert.equal(datum.value, items.item3b);
+			});
 
 			it('should getItem()', async function() {
 				let value = await storage.getItem('item1');
@@ -124,12 +148,12 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			it('should valuesWithKeyMatch(String)', async function() {
 				await storage.setItem('item2', items.item2);
 				let value = await storage.valuesWithKeyMatch('item');
-				assert.equal(value.length, 2);
+				assert.equal(value.length, KEYS.length);
 			});
 
 			it('should valuesWithKeyMatch(RegEx)', async function() {
 				let value = await storage.valuesWithKeyMatch(/item/);
-				assert.equal(value.length, 2);
+				assert.equal(value.length, KEYS.length);
 			});
 
 			it('should removeItem()', async function() {
@@ -139,6 +163,11 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		});
 
 		describe('general global operations', function() {
+			let options = {
+				dir: randDir()
+			};
+			let storage = nodePersist.create();
+
 			beforeEach(async function() {
 				await storage.init(options);
 				await storage.setItem('item1', items.item1);

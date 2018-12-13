@@ -87,7 +87,7 @@ await storage.init({
 
 	logging: false,  // can also be custom logging function
 
-	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS
+	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS or a valid Javascript Date object
 
 	expiredInterval: 2 * 60 * 1000, // every 2 minutes the process will clean-up the expired cache
 
@@ -113,7 +113,16 @@ await storage.setItem('fibonacci',[0,1,1,2,3,5,8]);
 await storage.setItem(42,'the answer to life, the universe, and everything.');
 await storage.setItem(42,'the answer to life, the universe, and everything.', {ttl: 1000*60 /* 1 min */ });
 ```
-\* The only option available when calling `setItem(key, value, option)` is `{ttl: $milliseconds}`
+\* The only option available when calling `setItem(key, value, option)` is `{ttl: Number|Date}`
+
+#### `async updateItem(key, value, [options])`
+This function updates a 'key' in your database with a new 'value' without touching the `ttl`, however, if the `key` was not found of it was `expired` a new item will get set
+
+```js
+await storage.setItem(42,'the answer to life, the universe, and everything.', {ttl: 1000*60*10 /* 10 minutes */ });
+await storage.setItem(42,'means nothing, do not trust wikipedia'); // ttl is still the same, will expired in 10 minutes since it was first set
+```
+\* The only option available when calling `setItem(key, value, option)` is `{ttl: Number|Date}`
 
 #### `async removeItem(key)`
 This function immediately deletes it from the file system asynchronously
