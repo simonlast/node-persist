@@ -51,7 +51,7 @@ const isValidStorageFileContent = function (content) {
 };
 
 const isExpired = function (datum) {
-	return datum.ttl && datum.ttl < (new Date()).getTime();
+	return datum && datum.ttl && datum.ttl < (new Date()).getTime();
 };
 
 const isNotExpired = function (datum) {
@@ -312,7 +312,7 @@ LocalStorage.prototype = {
 				}
 				let input = options.raw ? text : this.parse(text);
 				if (!options.raw && !isValidStorageFileContent(input)) {
-					return this.options.forgiveParseErrors ? resolve() : reject(new Error(`[node-persist][readFile] ${file} does not look like a valid storage file!`));
+					return this.options.forgiveParseErrors ? resolve(options.raw ? '{}' : {}) : reject(new Error(`[node-persist][readFile] ${file} does not look like a valid storage file!`));
 				}
 				resolve(input);
 			});
