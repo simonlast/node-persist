@@ -182,7 +182,7 @@ LocalStorage.prototype = {
 				ttl = previousDatum.ttl;
 			}
 			if (this.logging) {
-				this.log(`update ('${key}': '${this.stringify(value)}')`);
+				this.log(`update ('${key}': '${this.stringify(newDatumValue)}')`);
 			}
 			let datum = {key: key, value: newDatumValue, ttl: ttl};
 			return this.writeFile(this.getDatumPath(key), datum);
