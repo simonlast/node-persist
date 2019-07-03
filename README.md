@@ -39,7 +39,7 @@ Non-backward changes
 
 * All the `*Sync` functions were removed, __every__ operation is now __asynchronous__
 * All the `persist*` functions were removed
-* __Nothing__ is held up in __RAM__ use your own memory caching module, i.e. [nano-cache](https://github.com/akhoury/nano-cache)
+* __Nothing__ is held up in __RAM__. Use your own memory caching module, i.e. [nano-cache](https://github.com/akhoury/nano-cache)
 * [Node 7.6+](https://stackoverflow.com/a/41757243/493756) is required now, we're using `async/await`
 * `continuous` and `interval` options were removed, since we immediately persist to disk now, __asynchronously__
 * `forEach` callback now accepts an object `callback({key, value})` instead of 2 arguments `callback(key, value)`
