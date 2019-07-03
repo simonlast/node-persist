@@ -170,8 +170,8 @@ console.log(await storage.length()); // 2
 This function iterates over each key/value pair and executes an asynchronous callback as well
 
 ```javascript
-storage.forEach(async function(datum) {
-	// use datum.key and datum.value
+storage.forEach(async function(item) {
+    // use item.key and item.value
 });
 ```
 ### Factory method
