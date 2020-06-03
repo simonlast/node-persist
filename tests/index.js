@@ -1,7 +1,6 @@
 
 const path = require('path');
 const fs = require('fs');
-const mkdirp = require('mkdirp');
 const assert = require('chai').assert;
 const rmdir = require('rimraf');
 
@@ -25,7 +24,7 @@ process.on('unhandledRejection', (reason, p) => {
 describe('node-persist ' + pkg.version + ' tests:', async function() {
 
 	before(function(done) {
-		mkdirp(TEST_BASE_DIR, done);
+		fs.mkdir(TEST_BASE_DIR, {recursive: true}, done);
 	});
 
 	after(function(done) {
@@ -291,7 +290,7 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			let storage = nodePersist.create();
 
 			// make sure the dir is there, and write a random file in there
-			mkdirp.sync(dir);
+			fs.mkdirSync(dir, {recursive: true});
 			fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
 
 			try {
@@ -308,7 +307,7 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			let storage = nodePersist.create();
 
 			// make sure the dir is there, and write a random file in there
-			mkdirp.sync(dir);
+			fs.mkdirSync(dir, {recursive: true});
 			fs.writeFileSync(dir + '/foo.bar', 'nothing that makes sense');
 
 			await storage.init({
