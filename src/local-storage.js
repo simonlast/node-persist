@@ -6,7 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const mkdirp = require('mkdirp');
 const pkg = require('../package.json');
 
 const defaults = {
@@ -257,7 +256,7 @@ LocalStorage.prototype = {
 					return resolve(result);
 				} else {
 					//create the directory
-					mkdirp(dir, (err) => {
+					fs.mkdir(dir, { recursive: true }, (err) => {
 						if (err) {
 							return reject(err);
 						}
