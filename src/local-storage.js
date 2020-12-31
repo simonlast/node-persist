@@ -398,7 +398,6 @@ LocalStorage.prototype = {
 		// only check for undefined, if null was passed in setItem then we probably didn't want to use the this.options.ttl
 		if (typeof ttl === 'undefined') {
 			ttl = this.options.ttl;
-		} else {
 		}
 
 		if (ttl) {
