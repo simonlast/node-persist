@@ -116,13 +116,13 @@ await storage.setItem(42,'the answer to life, the universe, and everything.', {t
 \* The only option available when calling `setItem(key, value, option)` is `{ttl: Number|Date}`
 
 #### `async updateItem(key, value, [options])`
-This function updates a 'key' in your database with a new 'value' without touching the `ttl`, however, if the `key` was not found of it was `expired` a new item will get set
+This function updates a 'key' in your database with a new 'value' without touching the `ttl`, however, if the `key` was not found or if it was `expired` a new item will get set
 
 ```js
-await storage.setItem(42,'the answer to life, the universe, and everything.', {ttl: 1000*60*10 /* 10 minutes */ });
-await storage.setItem(42,'means nothing, do not trust wikipedia'); // ttl is still the same, will expired in 10 minutes since it was first set
+await storage.updateItem(42,'the answer to life, the universe, and everything.', {ttl: 1000*60*10 /* 10 minutes */ });
+await storage.updateItem(42,'means nothing, do not trust wikipedia'); // ttl is still the same, will expired in 10 minutes since it was first set
 ```
-\* The only option available when calling `setItem(key, value, option)` is `{ttl: Number|Date}`
+\* The only option available when calling `updateItem(key, value, option)` is `{ttl: Number|Date}`
 
 #### `async removeItem(key)`
 This function immediately deletes it from the file system asynchronously
