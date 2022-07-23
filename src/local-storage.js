@@ -111,7 +111,7 @@ LocalStorage.prototype = {
 		this.options = options;
 	},
 
-	data: async function () {
+	data: function () {
 		return this.readDirectory(this.options.dir);
 	},
 
@@ -146,7 +146,7 @@ LocalStorage.prototype = {
 		}
 	},
 
-	valuesWithKeyMatch: async function(match) {
+	valuesWithKeyMatch: function(match) {
 		match = match || /.*/;
 		let filter = match instanceof RegExp ? datum => match.test(datum.key) : datum => datum.key.indexOf(match) !== -1;
 		return this.values(filter);
@@ -204,11 +204,11 @@ LocalStorage.prototype = {
 		}
 	},
 
-	getDatum: async function (key) {
+	getDatum: function (key) {
 		return this.readFile(this.getDatumPath(key));
 	},
 
-	getRawDatum: async function (key) {
+	getRawDatum: function (key) {
 		return this.readFile(this.getDatumPath(key), {raw: true});
 	},
 
@@ -229,7 +229,7 @@ LocalStorage.prototype = {
 		return this.removeItem(key);
 	},
 
-	removeItem: async function (key) {
+	removeItem: function (key) {
 		return this.deleteFile(this.getDatumPath(key));
 	},
 
