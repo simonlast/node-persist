@@ -7,16 +7,20 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const pkg = require('../package.json');
+const { nextTick } = require('process');
 
 const defaults = {
-	dir: '.' + pkg.name + '/storage',
-	stringify: JSON.stringify,
-	parse: JSON.parse,
-	encoding: 'utf8',
+	ttl: false,
 	logging: false,
-	expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
+	encoding: 'utf8',
+	parse: JSON.parse,
+	stringify: JSON.stringify,
 	forgiveParseErrors: false,
-	ttl: false
+	expiredInterval: 2 * 60 * 1000, /* every 2 minutes */
+	dir: '.' + pkg.name + '/storage',
+	writeQueue: true,
+	writeQueueIntervalMs: 1000,
+	writeQueueWriteOnlyLast: true,
 };
 
 const defaultTTL = 24 * 60 * 60 * 1000; /* if ttl is truthy but it's not a number, use 24h as default */
@@ -82,6 +86,8 @@ LocalStorage.prototype = {
 		if (this.options.expiredInterval) {
 			this.startExpiredKeysInterval();
 		}
+		this.q = {}
+		this.startWriteQueueInterval();
 		return this.options;
 	},
 
@@ -159,11 +165,9 @@ LocalStorage.prototype = {
 	setItem: function (key, datumValue, options = {}) {
 		let value = this.copy(datumValue);
 		let ttl = this.calcTTL(options.ttl);
-		if (this.logging) {
-			this.log(`set ('${key}': '${this.stringify(value)}')`);
-		}
-		let datum = {key: key, value: value, ttl: ttl};
-		return this.writeFile(this.getDatumPath(key), datum);
+		this.log(`set ('${key}': '${this.stringify(value)}')`);
+		let datum = { key, value, ttl };
+		return this.queueWriteFile(this.getDatumPath(key), datum);
 	},
 
 	update: function (key, value, options = {}) {
@@ -180,11 +184,9 @@ LocalStorage.prototype = {
 			} else {
 				ttl = previousDatum.ttl;
 			}
-			if (this.logging) {
-				this.log(`update ('${key}': '${this.stringify(newDatumValue)}')`);
-			}
-			let datum = {key: key, value: newDatumValue, ttl: ttl};
-			return this.writeFile(this.getDatumPath(key), datum);
+			this.log(`update ('${key}': '${this.stringify(newDatumValue)}')`);
+			let datum = { key, value: newDatumValue, ttl };
+			return this.queueWriteFile(this.getDatumPath(key), datum);
 		} else {
 			return this.setItem(key, datumValue, options);
 		}
@@ -318,9 +320,76 @@ LocalStorage.prototype = {
 		});
 	},
 
-	writeFile: function (file, content) {
+	queueWriteFile: async function (file, content) {
+		if (this.options.writeQueue === false) {
+			return this.writeFile(file, content)			
+		}
+		this.q[file] = this.q[file] || []
+		nextTick(() => {
+			this.startWriteQueueInterval()
+		})
 		return new Promise((resolve, reject) => {
-			fs.writeFile(file, this.stringify(content), this.options.encoding, (err) => {
+			this.q[file].push({ content, resolve, reject })
+		})
+	},
+	
+	processWriteQueue: async function () {
+		if (this.processingWriteQueue) {
+			this.log('Still processing write queue, waiting...');
+			return
+		}
+		this.processingWriteQueue = true
+		const promises = Object.keys(this.q).map(async file => {
+			let writeItem
+			if (this.options.writeQueueWriteOnlyLast) {
+				// lifo
+				writeItem = this.q[file].pop()
+			} else {
+				// fifo
+				writeItem = this.q[file].shift()
+			}
+			try {
+				const ret = await this.writeFile(file, writeItem.content)
+				if (this.options.writeQueueWriteOnlyLast) {
+					while (this.q[file].length) {
+						const writeItem0 = this.q[file].shift()
+						writeItem0.resolve(ret)
+					}
+				}
+				writeItem.resolve(ret)
+			} catch (e) {
+				while (this.q[file].length) {
+					const writeItem0 = this.q[file].shift()
+					writeItem0.reject(e)
+				}
+				writeItem.reject(e)
+			}
+			if (!this.q[file]?.length) {
+				delete this.q[file]
+			}
+		})
+		try {
+			await Promise.all(promises)
+		} finally {
+			this.processingWriteQueue = false
+		}
+	},
+	
+	startWriteQueueInterval: function () {
+		this.processWriteQueue()
+		if (!this._writeQueueInterval) {
+			this._writeQueueInterval = setInterval(() => this.processWriteQueue(), this.options.writeQueueIntervalMs || 1000)
+			this._writeQueueInterval.unref && this._writeQueueInterval.unref();
+		}
+	},
+
+	stopWriteQueueInterval: function () {
+		clearInterval(this._writeQueueInterval);
+	},
+
+	writeFile: async function (file, content) {
+		return new Promise((resolve, reject) => {
+			fs.writeFile(file, this.stringify(content), this.options.encoding, async (err) => {
 				if (err) {
 					return reject(err);
 				}

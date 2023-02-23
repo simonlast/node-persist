@@ -88,7 +88,9 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 	describe('operations', function() {
 		let options = {
 			dir: randDir(),
-			// logging: true
+			// logging: true,
+			writeQueue: true,
+			writeQueueWriteOnlyLast: true
 		};
 		let storage = nodePersist.create();
 
@@ -98,8 +100,15 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			'item3a': `3a`,
 			'item3b': `3b`,
 		};
+		let itemKeys = Object.keys(items);
 
-		let KEYS = Object.keys(items);
+		const generatedItemsLength = 100;
+		const generatedItemsParallel = 10;
+		let generatedItems = {};
+		for (let i = 0; i < generatedItemsLength; i++) {
+			generatedItems['generated' + i] = i			
+		}
+		let generatedItemsKeys = Object.keys(generatedItems);
 
 		describe('general items operations', function() {
 			it('should init()', async function() {
@@ -111,6 +120,43 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			it('should setItem()', async function() {
 				await storage.setItem('item1', items.item1);
 				assert.equal(await storage.getItem('item1'), items.item1);
+			});
+			
+			it(`should write ${generatedItemsLength * generatedItemsParallel} times, with writeQueueWriteOnlyLast=true,  in parallel setItem() then read them back`, async function() {				
+				let writePromises = [];
+				for (let i = 0; i < generatedItemsParallel; i++) {
+					writePromises = writePromises.concat(generatedItemsKeys.map(k => storage.setItem(k, i < generatedItemsParallel - 1 ? generatedItems[k] * i : generatedItems[k])))
+				}
+				await Promise.all(writePromises);
+				let readPromises = generatedItemsKeys.map(async (k) => { 
+					return assert.equal(await storage.getItem(k), generatedItems[k])
+				});
+				
+				await Promise.all(readPromises);
+			});
+			
+			it(`should write ${generatedItemsLength * generatedItemsParallel} times, with writeQueueWriteOnlyLast=false, in parallel setItem() then read them back`, async function() {
+				this.timeout(30000)
+				storage.setOptions({ 
+					...options, 
+					writeQueueWriteOnlyLast: false 
+				});
+				
+				let writePromises = [];
+				for (let i = 0; i < generatedItemsParallel; i++) {
+					writePromises = writePromises.concat(generatedItemsKeys.map(k => storage.setItem(k, i < generatedItemsParallel - 1 ? generatedItems[k] * i : generatedItems[k])))
+				}
+				await Promise.all(writePromises);
+				let readPromises = generatedItemsKeys.map(async (k) => { 
+					return assert.equal(await storage.getItem(k), generatedItems[k])
+				});
+				
+				await Promise.all(readPromises);
+				
+				storage.setOptions({ 
+					...options, 
+					writeQueueWriteOnlyLast: true 
+				});
 			});
 
 			it('should setItem() with ttl as a Date Object', async function() {
@@ -147,12 +193,12 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			it('should valuesWithKeyMatch(String)', async function() {
 				await storage.setItem('item2', items.item2);
 				let value = await storage.valuesWithKeyMatch('item');
-				assert.equal(value.length, KEYS.length);
+				assert.equal(value.length, itemKeys.length);
 			});
 
 			it('should valuesWithKeyMatch(RegEx)', async function() {
 				let value = await storage.valuesWithKeyMatch(/item/);
-				assert.equal(value.length, KEYS.length);
+				assert.equal(value.length, itemKeys.length);
 			});
 
 			it('should removeItem()', async function() {

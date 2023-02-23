@@ -33,6 +33,13 @@ $ node counter.js
 $ open up localhost:8080
 ```
 
+## 3.1.1 change logs
+
+backward changes
+
+* Added the `writeQueue*` options, trying to resolve [issue#108](https://github.com/simonlast/node-persist/issues/108), see the API Documentation below.
+
+
 ## 3.0.0 change logs
 
 Non-backward changes
@@ -85,16 +92,27 @@ await storage.init({
 
 	encoding: 'utf8',
 
-	logging: false,  // can also be custom logging function
+	// can also be custom logging function
+	logging: false,  
 
-	ttl: false, // ttl* [NEW], can be true for 24h default or a number in MILLISECONDS or a valid Javascript Date object
+	// ttl* [NEW], can be true for 24h default or a number in MILLISECONDS or a valid Javascript Date object
+	ttl: false,
 
-	expiredInterval: 2 * 60 * 1000, // every 2 minutes the process will clean-up the expired cache
+	// every 2 minutes the process will clean-up the expired cache
+	expiredInterval: 2 * 60 * 1000, 
 
     // in some cases, you (or some other service) might add non-valid storage files to your
     // storage dir, i.e. Google Drive, make this true if you'd like to ignore these files and not throw an error
-    forgiveParseErrors: false
-
+    forgiveParseErrors: false,
+	
+	// instead of writing to file immediately, each "file" will have its own mini queue to avoid corrupted files, keep in mind that this would not properly work in multi-process setting.
+	writeQueue: true, 
+	
+	// how often to check for pending writes, don't worry if you feel like 1s is a lot, it actually tries to process every time you setItem as well
+	writeQueueIntervalMs: 1000, 
+	
+	// if you setItem() multiple times to the same key, only the last one would be set, BUT the others would still resolve with the results of the last one, if you turn this to false, each one will execute, but might slow down the writing process.
+	writeQueueWriteOnlyLast: true, 
 });
 
 ```
