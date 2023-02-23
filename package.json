@@ -1,6 +1,6 @@
 {
   "name": "node-persist",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage",
   "main": "./src/node-persist.js",
   "directories": {
