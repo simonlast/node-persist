@@ -40,7 +40,7 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "chai": "^4.1.2",
-    "mocha": "^5.0.5",
+    "mocha": "^10.2.0",
     "rimraf": "^2.4.3"
   }
 }
