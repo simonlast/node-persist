@@ -1,13 +1,13 @@
 {
   "name": "node-persist",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "description": "Super-easy (and fast) persistent data structures in Node.js, modeled after HTML5 localStorage",
   "main": "./src/node-persist.js",
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha tests/"
+    "test": "./node_modules/.bin/mocha tests/"
   },
   "repository": {
     "type": "git",

@@ -364,7 +364,7 @@ LocalStorage.prototype = {
 				}
 				writeItem.reject(e)
 			}
-			if (!this.q[file]?.length) {
+			if (!this.q[file] || !this.q[file].length) {
 				delete this.q[file]
 			}
 		})
