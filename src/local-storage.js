@@ -253,8 +253,8 @@ LocalStorage.prototype = {
 		return new Promise((resolve, reject) => {
 			let result = {dir: dir};
 			//check to see if dir is present
-			fs.exists(dir, (exists) => {
-				if (exists) {
+			fs.access(dir, (accessErr) => {
+				if (!accessErr) {
 					return resolve(result);
 				} else {
 					//create the directory
@@ -273,8 +273,8 @@ LocalStorage.prototype = {
 	readDirectory: function (dir) {
 		return new Promise((resolve, reject) => {
 			//check to see if dir is present
-			fs.exists(dir, (exists) => {
-				if (exists) {
+			fs.access(dir, (accessErr) => {
+				if (!accessErr) {
 					//load data
 					fs.readdir(dir, async (err, arr) => {
 						if (err) {
@@ -401,21 +401,21 @@ LocalStorage.prototype = {
 
 	deleteFile: function (file) {
 		return new Promise((resolve, reject) => {
-			fs.exists(file, (exists) => {
-				if (exists) {
+			fs.access(file, (accessErr) => {
+				if (!accessErr) {
 					this.log(`Removing file:${file}`);
 					fs.unlink(file, (err) => {
 						/* Only throw the error if the error is something else */
 						if (err && err.code !== 'ENOENT') {
 							return reject(err);
 						}
-						let result = {file: file, removed: !err, existed: exists};
+						let result = {file: file, removed: !err, existed: !accessErr};
 						err && this.log(`Failed to remove file:${file} because it doesn't exist anymore.`);
 						resolve(result);
 					});
 				} else {
 					this.log(`Not removing file:${file} because it doesn't exist`);
-					let result = {file: file, removed: false, existed: exists};
+					let result = {file: file, removed: false, existed: false};
 					resolve(result);
 				}
 			});
