@@ -45,8 +45,8 @@ const isFutureDate = function(d) {
 	return isValidDate(d) && d.getTime() > (+new Date);
 };
 
-const md5 = function (key) {
-	return crypto.createHash('md5').update(key).digest('hex');
+const sha256 = function (key) {
+	return crypto.createHash('sha256').update(key).digest('hex');
 };
 
 const isValidStorageFileContent = function (content) {
@@ -220,7 +220,7 @@ LocalStorage.prototype = {
 	},
 
 	getDatumPath: function (key) {
-		return path.join(this.options.dir, md5(key));
+		return path.join(this.options.dir, sha256(key));
 	},
 
 	del: function (key) {
