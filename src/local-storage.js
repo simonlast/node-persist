@@ -91,6 +91,19 @@ LocalStorage.prototype = {
 		return this.options;
 	},
 
+	initSync: function (options) {
+		if (options) {
+			this.setOptions(options);
+		}
+		this.ensureDirectorySync(this.options.dir);
+		if (this.options.expiredInterval) {
+			this.startExpiredKeysInterval();
+		}
+		this.q = {}
+		this.startWriteQueueInterval();
+		return this.options;
+	},
+
 	setOptions: function (userOptions) {
 		let options = {};
 
@@ -252,12 +265,10 @@ LocalStorage.prototype = {
 	ensureDirectory: function (dir) {
 		return new Promise((resolve, reject) => {
 			let result = {dir: dir};
-			//check to see if dir is present
 			fs.access(dir, (accessErr) => {
 				if (!accessErr) {
 					return resolve(result);
 				} else {
-					//create the directory
 					fs.mkdir(dir, { recursive: true }, (err) => {
 						if (err) {
 							return reject(err);
@@ -268,6 +279,18 @@ LocalStorage.prototype = {
 				}
 			});
 		});
+	},
+
+	ensureDirectorySync: function (dir) {
+		let result = {dir: dir};
+		try {
+			fs.accessSync(dir)
+			return result
+		} catch (e) {
+			fs.mkdirSync(dir, { recursive: true })
+			this.log('created ' + dir);
+			return result
+		}
 	},
 
 	readDirectory: function (dir) {

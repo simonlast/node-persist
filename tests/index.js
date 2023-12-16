@@ -32,7 +32,7 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 	});
 
 	describe('instances', function() {
-		let dir1, dir2, storage1, storage2, storage11, storage22;
+		let dir1, dir2, storage1, storage2, storage11, storage22, storageSync;
 
 		beforeEach(async function () {
 			dir1 = randDir();
@@ -55,11 +55,16 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			storage22 = nodePersist.create({
 				dir: dir2
 			});
+			dirSync = randDir();
+			storageSync = nodePersist.create({
+				dir: dirSync
+			});
 		});
 
 		it('should create 2 new different instances of LocalStorage', async function() {
 			assert.ok(storage1 instanceof LocalStorage);
 			assert.ok(storage2 instanceof LocalStorage);
+			assert.ok(storageSync instanceof LocalStorage);
 			assert.ok(storage1 != storage2);
 		});
 
@@ -69,6 +74,16 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			await storage22.init();
 			let value = await storage2.getItem('s2');
 			assert.deepEqual(value, {a: 1}, `write/read didn't work`);
+		});
+
+		it('should initSync properly', function() {
+			storageSync.initSync();
+		});
+
+		it('should storageSync set and get async properly', async function() {
+			storageSync.initSync();
+			await storageSync.setItem('item9977', 'hello');
+			assert.equal(await storageSync.getItem('item9977'), 'hello', `write/read didn't work`);
 		});
 
 		it('should create the default instance of LocalStorage sync and use it', async function() {
@@ -113,6 +128,12 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		describe('general items operations', function() {
 			it('should init()', async function() {
 				await storage.init(options);
+				assert.equal(storage.options.dir, options.dir);
+				assert.ok(fs.existsSync(options.dir));
+			});
+
+			it('should initSync()', function() {
+				storage.initSync(options);
 				assert.equal(storage.options.dir, options.dir);
 				assert.ok(fs.existsSync(options.dir));
 			});

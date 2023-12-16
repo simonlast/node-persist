@@ -19,11 +19,16 @@ $ npm install node-persist
 ```js
 const storage = require('node-persist');
 
-//you must first call storage.init
-await storage.init( /* options ... */ );
+//you must first call storage.init or initSync
+storage.initSync( /* options ... */ );
+// or 
+// storage.init( /* options ... */ );
+
+// then anywhere else in your code
 await storage.setItem('name','yourname')
 console.log(await storage.getItem('name')); // yourname
 ```
+
 
 ## Run the counter example:
 
