@@ -2,11 +2,14 @@
 ## (localStorage on the server)
 
 ### Super-easy asynchronous persistent data structures in Node.js, modeled after HTML5 localStorage
+
 Node-persist doesn't use a database. Instead, JSON documents are stored in the file system for persistence. Because there is no network overhead, node-persist is just about as fast as a database can get. Node-persist uses the HTML5 localStorage API, so it's easy to learn.
 
 This is still a work in progress. Send pull requests please.
 ## Note
-If you're looking for the version that supports both `synchronous` and `asynchronous` use `node-persist@2.1.0`
+
+* This is __not__ designed for large amounts of data, you can do way more than the [5MB limit imposed by the browsers](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria#web_storage) but don't stretch it, in some cases you might need to load the whole storage into RAM, but normat `getItem`/`setItem` does not.
+* If you're looking for the version that supports both `synchronous` and `asynchronous` use `node-persist@2.1.0`
 
 ## Install
 
