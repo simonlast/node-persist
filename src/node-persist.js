@@ -21,6 +21,9 @@ const LocalStorage = require('./local-storage');
      * An options hash can be optionally passed.
      */
     nodePersist.init = async function (userOptions) {
+        if (nodePersist.defaultInstance) {
+            throw new Error('node-persist has already been initialized')
+        }
         const localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
         let ret = await localStorage.init(userOptions);
         mixin(nodePersist, localStorage, {skip: ['init', 'create']});

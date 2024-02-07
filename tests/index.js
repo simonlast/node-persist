@@ -31,6 +31,39 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		rmdir(TEST_BASE_DIR, done);
 	});
 
+	describe('default instance', function() {
+		this.beforeEach(() => {
+			// Reset global state
+			nodePersist.defaultInstance = null;
+		})
+
+		it('should create the default instance of LocalStorage sync and use it', async function() {
+			await nodePersist.init({dir: randDir()});
+			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
+			await nodePersist.setItem('item8877', 'hello');
+			assert.equal(await nodePersist.getItem('item8877'), 'hello', `write/read didn't work`);
+		});
+
+		it('should create a default instance', async function() {
+			let dir = randDir();
+			let options = await nodePersist.init({dir: dir});
+			assert.equal(options.dir, dir, `Options don't match`);
+		});
+
+		it('should not allow init to be called more than once', async function() {
+			await nodePersist.init();
+
+      let initError;
+      try {
+        await nodePersist.init();
+      } catch(err) {
+        initError = err
+      }
+
+      assert.include(initError != null ? initError.message : '', 'node-persist has already been initialized');
+		});
+	})
+
 	describe('instances', function() {
 		let dir1, dir2, storage1, storage2, storage11, storage22, storageSync;
 
@@ -85,20 +118,50 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			await storageSync.setItem('item9977', 'hello');
 			assert.equal(await storageSync.getItem('item9977'), 'hello', `write/read didn't work`);
 		});
-
-		it('should create the default instance of LocalStorage sync and use it', async function() {
-			await nodePersist.init({dir: randDir()});
-			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
-			await nodePersist.setItem('item8877', 'hello');
-			assert.equal(await nodePersist.getItem('item8877'), 'hello', `write/read didn't work`);
-		});
-
-		it('should create a default instance', async function() {
-			let dir = randDir();
-			let options = await nodePersist.init({dir: dir});
-			assert.equal(options.dir, dir, `Options don't match`);
-		});
 	});
+
+	describe('initialisation', function() {
+		let options = {
+			dir: randDir(),
+			// logging: true,
+			writeQueue: true,
+			writeQueueWriteOnlyLast: true
+		};
+
+		let storage;
+		beforeEach(async () => {
+			storage = nodePersist.create();
+		})
+
+		it('should init()', async function() {
+			await storage.init(options);
+			assert.equal(storage.options.dir, options.dir);
+			assert.ok(fs.existsSync(options.dir));
+		});
+
+		it('should initSync()', async function() {
+			storage.initSync(options);
+			assert.equal(storage.options.dir, options.dir);
+			assert.ok(fs.existsSync(options.dir));
+		});
+
+		it('should fail if init() or initAsync() are called more than once per instance', async function() {
+			await storage.init(options);
+
+			let initError;
+			try {
+				await storage.init(options);
+			} catch(err) {
+				initError = err
+			}
+
+			assert.include(initError != null ? initError.message : '', 'LocalStorage has already been initialised');
+
+			assert.throws(() => {
+				storage.initSync(options)
+			}, 'LocalStorage has already been initialised', undefined, 'initSync() should throw an error when called after init()');
+		});
+	})
 
 	describe('operations', function() {
 		let options = {
@@ -107,7 +170,11 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			writeQueue: true,
 			writeQueueWriteOnlyLast: true
 		};
-		let storage = nodePersist.create();
+		let storage;
+		beforeEach(async () => {
+			storage = nodePersist.create();
+			await storage.init(options);
+		})
 
 		let items = {
 			'item1': 1,
@@ -126,17 +193,6 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		let generatedItemsKeys = Object.keys(generatedItems);
 
 		describe('general items operations', function() {
-			it('should init()', async function() {
-				await storage.init(options);
-				assert.equal(storage.options.dir, options.dir);
-				assert.ok(fs.existsSync(options.dir));
-			});
-
-			it('should initSync()', function() {
-				storage.initSync(options);
-				assert.equal(storage.options.dir, options.dir);
-				assert.ok(fs.existsSync(options.dir));
-			});
 
 			it('should setItem()', async function() {
 				await storage.setItem('item1', items.item1);
@@ -232,9 +288,10 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			let options = {
 				dir: randDir()
 			};
-			let storage = nodePersist.create();
+			let storage;
 
 			beforeEach(async function() {
+				storage = nodePersist.create();
 				await storage.init(options);
 				await storage.setItem('item1', items.item1);
 				await storage.setItem('item2', items.item2);

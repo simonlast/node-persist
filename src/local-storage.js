@@ -79,6 +79,11 @@ const LocalStorage = function (options) {
 LocalStorage.prototype = {
 
 	init: async function (options) {
+		if (this.initialised) {
+			throw new Error("LocalStorage has already been initialised, did you call init or initSync twice?")
+		}
+		this.initialised = true
+
 		if (options) {
 			this.setOptions(options);
 		}
@@ -92,6 +97,11 @@ LocalStorage.prototype = {
 	},
 
 	initSync: function (options) {
+		if (this.initialised) {
+			throw new Error("LocalStorage has already been initialised, did you call init or initSync twice?")
+		}
+		this.initialised = true
+
 		if (options) {
 			this.setOptions(options);
 		}
