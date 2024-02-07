@@ -31,6 +31,39 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		rmdir(TEST_BASE_DIR, done);
 	});
 
+	describe('default instance', function() {
+		this.beforeEach(() => {
+			// Reset global state
+			nodePersist.defaultInstance = null;
+		})
+
+		it('should create the default instance of LocalStorage sync and use it', async function() {
+			await nodePersist.init({dir: randDir()});
+			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
+			await nodePersist.setItem('item8877', 'hello');
+			assert.equal(await nodePersist.getItem('item8877'), 'hello', `write/read didn't work`);
+		});
+
+		it('should create a default instance', async function() {
+			let dir = randDir();
+			let options = await nodePersist.init({dir: dir});
+			assert.equal(options.dir, dir, `Options don't match`);
+		});
+
+		it('should not allow init to be called more than once', async function() {
+			await nodePersist.init();
+
+      let initError;
+      try {
+        await nodePersist.init();
+      } catch(err) {
+        initError = err
+      }
+
+      assert.include(initError != null ? initError.message : '', 'node-persist has already been initialized');
+		});
+	})
+
 	describe('instances', function() {
 		let dir1, dir2, storage1, storage2, storage11, storage22, storageSync;
 
@@ -85,19 +118,6 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			await storageSync.setItem('item9977', 'hello');
 			assert.equal(await storageSync.getItem('item9977'), 'hello', `write/read didn't work`);
 		});
-
-		it('should create the default instance of LocalStorage sync and use it', async function() {
-			await nodePersist.init({dir: randDir()});
-			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
-			await nodePersist.setItem('item8877', 'hello');
-			assert.equal(await nodePersist.getItem('item8877'), 'hello', `write/read didn't work`);
-		});
-
-		it('should create a default instance', async function() {
-			let dir = randDir();
-			let options = await nodePersist.init({dir: dir});
-			assert.equal(options.dir, dir, `Options don't match`);
-		});
 	});
 
 	describe('initialisation', function() {
@@ -135,12 +155,12 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 				initError = err
 			}
 
-			assert.include(initError != null ? initError.message : '', 'node-persist has already been initialised');
+			assert.include(initError != null ? initError.message : '', 'LocalStorage has already been initialised');
 
 			assert.throws(() => {
 				storage.initSync(options)
-			}, 'node-persist has already been initialised', undefined, 'initSync() should throw an error when called after init()');
-		})
+			}, 'LocalStorage has already been initialised', undefined, 'initSync() should throw an error when called after init()');
+		});
 	})
 
 	describe('operations', function() {

@@ -80,7 +80,7 @@ LocalStorage.prototype = {
 
 	init: async function (options) {
 		if (this.initialised) {
-			throw new Error("node-persist has already been initialised, did you call init or initSync twice?")
+			throw new Error("LocalStorage has already been initialised, did you call init or initSync twice?")
 		}
 		this.initialised = true
 
@@ -98,7 +98,7 @@ LocalStorage.prototype = {
 
 	initSync: function (options) {
 		if (this.initialised) {
-			throw new Error("node-persist has already been initialised, did you call init or initSync twice?")
+			throw new Error("LocalStorage has already been initialised, did you call init or initSync twice?")
 		}
 		this.initialised = true
 
