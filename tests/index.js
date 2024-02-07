@@ -100,6 +100,49 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		});
 	});
 
+	describe('initialisation', function() {
+		let options = {
+			dir: randDir(),
+			// logging: true,
+			writeQueue: true,
+			writeQueueWriteOnlyLast: true
+		};
+
+		let storage;
+		beforeEach(async () => {
+			storage = nodePersist.create();
+		})
+
+		it('should init()', async function() {
+			await storage.init(options);
+			assert.equal(storage.options.dir, options.dir);
+			assert.ok(fs.existsSync(options.dir));
+		});
+
+		it('should initSync()', async function() {
+			storage.initSync(options);
+			assert.equal(storage.options.dir, options.dir);
+			assert.ok(fs.existsSync(options.dir));
+		});
+
+		it('should fail if init() or initAsync() are called more than once per instance', async function() {
+			await storage.init(options);
+
+			let initError;
+			try {
+				await storage.init(options);
+			} catch(err) {
+				initError = err
+			}
+
+			assert.include(initError != null ? initError.message : '', 'node-persist has already been initialised');
+
+			assert.throws(() => {
+				storage.initSync(options)
+			}, 'node-persist has already been initialised', undefined, 'initSync() should throw an error when called after init()');
+		})
+	})
+
 	describe('operations', function() {
 		let options = {
 			dir: randDir(),
@@ -126,17 +169,6 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 		let generatedItemsKeys = Object.keys(generatedItems);
 
 		describe('general items operations', function() {
-			it('should init()', async function() {
-				await storage.init(options);
-				assert.equal(storage.options.dir, options.dir);
-				assert.ok(fs.existsSync(options.dir));
-			});
-
-			it('should initSync()', function() {
-				storage.initSync(options);
-				assert.equal(storage.options.dir, options.dir);
-				assert.ok(fs.existsSync(options.dir));
-			});
 
 			it('should setItem()', async function() {
 				await storage.setItem('item1', items.item1);
