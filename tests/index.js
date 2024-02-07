@@ -150,7 +150,11 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			writeQueue: true,
 			writeQueueWriteOnlyLast: true
 		};
-		let storage = nodePersist.create();
+		let storage;
+		beforeEach(async () => {
+			storage = nodePersist.create();
+			await storage.init(options);
+		})
 
 		let items = {
 			'item1': 1,
@@ -264,9 +268,10 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			let options = {
 				dir: randDir()
 			};
-			let storage = nodePersist.create();
+			let storage;
 
 			beforeEach(async function() {
+				storage = nodePersist.create();
 				await storage.init(options);
 				await storage.setItem('item1', items.item1);
 				await storage.setItem('item2', items.item2);
