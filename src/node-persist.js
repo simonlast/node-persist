@@ -20,10 +20,22 @@ const LocalStorage = require('./local-storage');
      * This function, (or init) must be called before the library can be used.
      * An options hash can be optionally passed.
      */
+    
     nodePersist.init = async function (userOptions) {
         const localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
         let ret = await localStorage.init(userOptions);
-        mixin(nodePersist, localStorage, {skip: ['init', 'create']});
+        mixin(nodePersist, localStorage, {skip: ['init', 'initSync', 'create']});
+        return ret;
+    };
+
+    /*
+     * This function, (or initSync) must be called before the library can be used.
+     * An options hash can be optionally passed.
+     */
+    nodePersist.initSync = function (userOptions) {
+        const localStorage = nodePersist.defaultInstance = nodePersist.create(userOptions);
+        let ret = localStorage.initSync(userOptions);
+        mixin(nodePersist, localStorage, {skip: ['init', 'initSync', 'create']});
         return ret;
     };
 

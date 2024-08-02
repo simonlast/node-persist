@@ -86,16 +86,29 @@ describe('node-persist ' + pkg.version + ' tests:', async function() {
 			assert.equal(await storageSync.getItem('item9977'), 'hello', `write/read didn't work`);
 		});
 
-		it('should create the default instance of LocalStorage sync and use it', async function() {
+		it('should create the default instance of LocalStorage async and use it', async function() {
 			await nodePersist.init({dir: randDir()});
 			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
 			await nodePersist.setItem('item8877', 'hello');
 			assert.equal(await nodePersist.getItem('item8877'), 'hello', `write/read didn't work`);
 		});
 
+		it('should create the default instance of LocalStorage sync and use it', async function() {
+			nodePersist.initSync({dir: randDir()});
+			assert.ok(nodePersist.defaultInstance instanceof LocalStorage);
+			await nodePersist.setItem('item8887', 'hello');
+			assert.equal(await nodePersist.getItem('item8887'), 'hello', `write/read didn't work`);
+		});
+
 		it('should create a default instance', async function() {
 			let dir = randDir();
 			let options = await nodePersist.init({dir: dir});
+			assert.equal(options.dir, dir, `Options don't match`);
+		});
+
+		it('should create a default instance but initSync', async function() {
+			let dir = randDir();
+			let options = nodePersist.initSync({dir: dir});
 			assert.equal(options.dir, dir, `Options don't match`);
 		});
 	});

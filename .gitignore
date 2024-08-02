@@ -2,3 +2,4 @@
 persist**
 node_modules
 .idea
+tests/storage-dirs/
