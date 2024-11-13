@@ -92,6 +92,8 @@ You can pass `init()` an options object to customize the behavior of node-persis
 These are the defaults
 ```js
 await storage.init({
+	// ⚠️ Watch out: The folder should only be used by node-persist and only have valid storage files.
+	// Otherwise you might use 'forgiveParseErrors: true'.
 	dir: 'relative/path/to/persist',
 
 	stringify: JSON.stringify,
@@ -109,9 +111,9 @@ await storage.init({
 	// every 2 minutes the process will clean-up the expired cache
 	expiredInterval: 2 * 60 * 1000, 
 
-    // in some cases, you (or some other service) might add non-valid storage files to your
-    // storage dir, i.e. Google Drive, make this true if you'd like to ignore these files and not throw an error
-    forgiveParseErrors: false,
+    	// in some cases, you (or some other service) might add non-valid storage files to your
+    	// storage dir, i.e. Google Drive, make this true if you'd like to ignore these files and not throw an error
+	forgiveParseErrors: false,
 	
 	// instead of writing to file immediately, each "file" will have its own mini queue to avoid corrupted files, keep in mind that this would not properly work in multi-process setting.
 	writeQueue: true, 
