@@ -1,5 +1,4 @@
-# node-persist
-## (localStorage on the server)
+# node-persist *- localStorage on the server*
 
 ### Super-easy asynchronous persistent data structures in Node.js, modeled after HTML5 localStorage
 
@@ -10,6 +9,16 @@ This is still a work in progress. Send pull requests please.
 
 * This is __not__ designed for large amounts of data, you can do way more than the [5MB limit imposed by the browsers](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria#web_storage) but don't stretch it, in some cases you might need to load the whole storage into RAM, but normat `getItem`/`setItem` does not.
 * If you're looking for the version that supports both `synchronous` and `asynchronous` use `node-persist@2.1.0`
+
+## Table of Contents
+
+[Install](#install)
+
+[Example](#basic-example)
+
+[Change Logs](#change-logs)
+
+[API](#api-documentation)
 
 ## Install
 
@@ -40,15 +49,16 @@ $ cd examples/counter
 $ node counter.js
 $ open up localhost:8080
 ```
+## Change Logs
 
-## 3.1.1 change logs
+### 3.1.1
 
 backward changes
 
 * Added the `writeQueue*` options, trying to resolve [issue#108](https://github.com/simonlast/node-persist/issues/108), see the API Documentation below.
 
 
-## 3.0.0 change logs
+### 3.0.0
 
 Non-backward changes
 
@@ -59,7 +69,7 @@ Non-backward changes
 * `continuous` and `interval` options were removed, since we immediately persist to disk now, __asynchronously__
 * `forEach` callback now accepts an object `callback({key, value})` instead of 2 arguments `callback(key, value)`
 
-## 2.0.0 change logs
+### 2.0.0
 
 Non-backward changes
 
@@ -68,7 +78,7 @@ Non-backward changes
 * added `expiredInterval` option
 * added `forgiveParseErrors` option
 
-## 1.0.0 change logs
+### 1.0.0
 
 Mostly non-backward changes
 
