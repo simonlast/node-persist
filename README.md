@@ -41,6 +41,13 @@ $ node counter.js
 $ open up localhost:8080
 ```
 
+## 4.0.0 change logs
+
+Non-backward changes
+
+* Switch file hashes from md5 to sha256
+
+
 ## 3.1.1 change logs
 
 backward changes
