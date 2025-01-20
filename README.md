@@ -51,6 +51,13 @@ $ open up localhost:8080
 ```
 ## Change Logs
 
+### 4.0.0
+
+Non-backward changes
+
+* Switch file hashes from md5 to sha256
+
+
 ### 3.1.1
 
 backward changes
