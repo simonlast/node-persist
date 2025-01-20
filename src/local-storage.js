@@ -6,8 +6,10 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const pkg = require('../package.json');
 const { nextTick } = require('process');
+const pLimit = require('p-limit');
+
+const pkg = require('../package.json');
 
 const defaults = {
 	ttl: false,
@@ -21,6 +23,7 @@ const defaults = {
 	writeQueue: true,
 	writeQueueIntervalMs: 1000,
 	writeQueueWriteOnlyLast: true,
+	maxFileDescriptors: Infinity,	
 };
 
 const defaultTTL = 24 * 60 * 60 * 1000; /* if ttl is truthy but it's not a number, use 24h as default */
@@ -127,6 +130,12 @@ LocalStorage.prototype = {
 			this.log = options.logging;
 			options.logging = true;
 		}
+
+		// Update limiter if maxFileDescriptors has changed
+		if (!this.limit || options.maxFileDescriptors !== this.options?.maxFileDescriptors) {
+			this.limit = pLimit(options.maxFileDescriptors);
+		}
+
 		this.options = options;
 	},
 
@@ -307,7 +316,8 @@ LocalStorage.prototype = {
 						try {
 							for (let currentFile of arr) {
 								if (currentFile[0] !== '.') {
-									data.push(await this.readFile(path.join(this.options.dir, currentFile)));
+									// Limit concurrent reads
+									data.push(await this.limit(() => this.readFile(path.join(this.options.dir, currentFile))));
 								}
 							}
 						} catch (err) {
@@ -323,7 +333,7 @@ LocalStorage.prototype = {
 	},
 
 	readFile: function (file, options = {}) {
-		return new Promise((resolve, reject) => {
+		return this.limit(() => new Promise((resolve, reject) => {
 			fs.readFile(file, this.options.encoding, (err, text) => {
 				if (err) {
 					/* Only throw the error if the error is something else other than the file doesn't exist */
@@ -340,7 +350,7 @@ LocalStorage.prototype = {
 				}
 				resolve(input);
 			});
-		});
+		}));
 	},
 
 	queueWriteFile: async function (file, content) {
@@ -411,19 +421,19 @@ LocalStorage.prototype = {
 	},
 
 	writeFile: async function (file, content) {
-		return new Promise((resolve, reject) => {
-			fs.writeFile(file, this.stringify(content), this.options.encoding, async (err) => {
+		return this.limit(() => new Promise((resolve, reject) => {
+			fs.writeFile(file, this.stringify(content), this.options.encoding, (err) => {
 				if (err) {
 					return reject(err);
 				}
 				resolve({file: file, content: content});
 				this.log('wrote: ' + file);
 			});
-		});
+		}));
 	},
 
 	deleteFile: function (file) {
-		return new Promise((resolve, reject) => {
+		return this.limit(() => new Promise((resolve, reject) => {
 			fs.access(file, (accessErr) => {
 				if (!accessErr) {
 					this.log(`Removing file:${file}`);
@@ -442,7 +452,7 @@ LocalStorage.prototype = {
 					resolve(result);
 				}
 			});
-		});
+		}));
 	},
 
 	stringify: function (obj) {

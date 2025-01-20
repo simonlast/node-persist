@@ -140,6 +140,10 @@ await storage.init({
 	
 	// if you setItem() multiple times to the same key, only the last one would be set, BUT the others would still resolve with the results of the last one, if you turn this to false, each one will execute, but might slow down the writing process.
 	writeQueueWriteOnlyLast: true, 
+
+	// Limit the number of concurrently used file descriptors to avoid Error: EMFILE: too many open files
+	// Defaults to Infinity for maximum performance but YMMV depending on your OS and how you use the library
+	maxFileDescriptors: 512
 });
 
 ```
