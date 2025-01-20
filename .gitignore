@@ -3,3 +3,4 @@ persist**
 node_modules
 .idea
 tests/storage-dirs/
+.DS_Store
